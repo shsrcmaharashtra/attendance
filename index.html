@@ -156,7 +156,7 @@ async function settingsTab(){const j=l=>(l||[]).join(', '),d10=t=>t.toDate().toI
  <p><button class="b" data-a="cs">Save settings</button></p><p class="mu" id="m"></p></div>`}
 
 document.addEventListener('change',e=>{if(e.target.id==='rm'&&e.target.value){month=e.target.value;show()}});
-document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,k=b.dataset.k,m=t=>{const x=$('#m');if(x)x.textContent=t};
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,k=b.dataset.k,m=t=>{const x=$('#m');if(x)x.textContent=t;else alert(t)};
  try{
  if(a==='tab'){tab=k;return show()}
  if(a==='mo'){const g=$('#bg');g.classList.toggle('nomo');try{localStorage.setItem('mo',g.classList.contains('nomo')?'0':'1')}catch(e){}return show()}
