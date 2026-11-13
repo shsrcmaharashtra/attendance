@@ -86,11 +86,23 @@ const xl=async(sheets,name)=>{if(!window.XLSX)await new Promise((r,j)=>{const s=
  const wb=XLSX.utils.book_new();Object.entries(sheets).forEach(([n,r])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(r),n));XLSX.writeFile(wb,name)};
 const LH=['Name','Email','Post','Department','Type','From','To','Days','Reason','Status','Decided by'],LR=l=>[l.name,l.email,l.post||'',l.dept||'',l.type,l.from,l.to,days(l),l.note||'',l.status,l.decidedBy||''];
 const used=ls=>ls.filter(l=>l.status==='Approved'&&l.type!=='Unpaid leave'&&l.from.startsWith(String(new Date().getFullYear()))).reduce((a,l)=>a+days(l),0);
+let HDB=false;
+async function loadHol(){try{const h=await get(query(C('holidays')));HDB=h.length>0;if(HDB){Object.keys(HOL).forEach(k=>delete HOL[k]);h.forEach(x=>HOL[x.id]=x.name)}}catch(e){}}
+async function seed(){if(HDB)return;const w=writeBatch(db);Object.entries(HOL).forEach(([d,n])=>w.set(doc(db,'holidays',d),{name:n}));await w.commit();HDB=true}
+const pd=v=>{if(typeof v==='number'){const d=new Date(Math.round((v-25569)*864e5));return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')}
+ const t=String(v||'').trim();let m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+ m=t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):null};
+async function impHol(f){if(!window.XLSX)await new Promise((r,j)=>{const x=document.createElement('script');x.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';x.onload=r;x.onerror=j;document.head.appendChild(x)});
+ const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1}),ok=[];
+ rows.forEach(r=>{const d=pd(r[0]),n=String(r[1]||'').trim();if(d&&n&&!isNaN(new Date(d)))ok.push([d,n])});
+ if(!ok.length)return alert('No holidays found. Column A must be the date and column B the holiday name.');
+ if(!confirm('Add '+ok.length+' holidays from this file? Dates that already exist will be updated.'))return;
+ await seed();const w=writeBatch(db);ok.forEach(([d,n])=>w.set(doc(db,'holidays',d),{name:n}));await w.commit();toast('✅',ok.length+' holidays added');show()}
 const avatar=u=>u.photo?`<img src="${u.photo}" alt="">`:`<span class="av">${esc((u.name||'?')[0].toUpperCase())}</span>`;
 
 onAuthStateChanged(auth,async u=>{if(reg)return;if(!u){me=null;return login()}
  uid=u.uid;em=u.email.toLowerCase();const s=await getDoc(doc(db,'users',uid));if(!s.exists()){msg='Profile not found. Ask HR.';await signOut(auth);return}
- me=s.data();isOwner=em===OWNER&&u.emailVerified;
+ me=s.data();isOwner=em===OWNER&&u.emailVerified;await loadHol();
  if(em===OWNER&&!u.emailVerified){sendEmailVerification(u).catch(()=>{});alert('A verification email was sent to '+u.email+'. Click the link in it, then sign in again to get HR powers.')}
  tab='mine';show()});
 
@@ -137,7 +149,11 @@ async function team(){
  <div class="card"><h2>Today</h2><div class="tw"><table><tr><th>Name</th><th>Department</th><th>Status</th><th>Time</th></tr>${us.sort((a,b)=>a.name<b.name?-1:1).map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.dept||'')}</td><td>${st(u)}</td><td>${tm((at[u.id]||{}).at)}</td></tr>`).join('')}</table></div></div>
  <div class="card"><h2>Leave history</h2>${hist.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th>Status</th></tr>${hist.map(l=>`<tr>${row(l)}<td>${tag(l.status)}</td></tr>`).join('')}</table></div>`:'<p class="mu">No history yet.</p>'}</div>`}
 
-async function hol(){const e=Object.entries(HOL).sort();return `<div class="card"><h2>Holidays 2026</h2><div class="tw"><table><tr><th>Date</th><th>Day</th><th>Holiday</th></tr>${e.map(([d,n])=>`<tr><td>${d}</td><td>${new Date(d+'T00:00').toLocaleDateString('en-IN',{weekday:'long'})}</td><td>${esc(n)}</td></tr>`).join('')}</table></div><p class="mu">Saturdays and Sundays are weekly offs.</p></div>`}
+async function hol(){await loadHol();const ed=has('holidays'),e=Object.entries(HOL).sort();
+ return `<div class="card"><h2>Holidays</h2>${ed?`<div class="row"><label>Date<input type="date" id="hd"></label><label>Holiday name<input id="hn"></label><button class="b" data-a="ah">Add holiday</button></div>
+ <div class="row"><label>Upload Excel (column A = date, column B = holiday name)<input type="file" id="hx" accept=".xlsx,.xls,.csv"></label><button class="b s g" data-a="ht">Download template</button>${HDB?'':'<button class="b s g" data-a="hs">Save current list to database</button>'}</div>`:''}
+ <div class="tw"><table><tr><th>Date</th><th>Day</th><th>Holiday</th>${ed?'<th></th>':''}</tr>${e.map(([d,n])=>`<tr><td>${d}</td><td>${new Date(d+'T00:00').toLocaleDateString('en-IN',{weekday:'long'})}</td><td>${esc(n)}</td>${ed?`<td><button class="b s g" data-a="rh" data-k="${d}">Remove</button></td>`:''}</tr>`).join('')||'<tr><td colspan="4" class="mu">No holidays.</td></tr>'}</table></div>
+ <p class="mu">Saturdays and Sundays are weekly offs. Holidays are not counted as leave days.</p></div>`}
 
 let rep=[];
 async function report(){
@@ -164,6 +180,7 @@ async function people(){
 
 const bar=()=>{};
 document.addEventListener('change',async e=>{const t=e.target;
+ if(t.id==='hx'&&t.files[0]){try{await impHol(t.files[0])}catch(x){alert('Could not read the file: '+x.message)}t.value=''}
  if(t.id==='rm'&&t.value){month=t.value;show()}
  if(t.id==='ph'&&t.files[0]){const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,220/Math.max(img.width,img.height));c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);photoData=c.toDataURL('image/jpeg',.7);$('#phv').innerHTML=`<img src="${photoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`};img.src=URL.createObjectURL(t.files[0])}});
 const mobId=async v=>{v=v.trim();if(v.includes('@'))return v;const s=await getDoc(doc(db,'phoneIndex',v.replace(/\D/g,'').slice(-10)));if(!s.exists())throw {message:'Mobile number not found.'};return s.data().email};
@@ -202,5 +219,10 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  if(a==='dlall'){b.textContent='Preparing…';const [us,ls,at]=await Promise.all([get(query(C('users'))),get(query(C('leaves'))),get(query(C('attendance')))]);
   await xl({People:[['Name','Email','Mobile','Designation','Department','Date of joining','Allowance','Approval goes to','Head','Tab access'],...us.map(u=>[u.name,u.email||'',u.mobile||'',u.post||'',u.dept||'',u.doj||'',u.allow??21,(u.reportsTo||[]).join(', '),u.head?'Yes':'',(u.tabs||[]).join(', ')])],
    Leaves:[LH,...ls.map(LR)],Attendance:[['Name','Department','Date','Status','Time'],...at.sort((x,y)=>x.date<y.date?1:-1).map(x=>[x.name,x.dept||'',x.date,x.status,tm(x.at)])]},'shsrc-all-data-'+today()+'.xlsx');b.textContent='⬇ Download all data (Excel)'}
+
+ if(a==='ah'){const d=$('#hd').value,n=$('#hn').value.trim();if(!d||!n)return alert('Choose a date and type the holiday name.');await seed();await setDoc(doc(db,'holidays',d),{name:n});toast('✅','Holiday added');show()}
+ if(a==='rh'&&confirm('Remove this holiday?')){await seed();await deleteDoc(doc(db,'holidays',k));toast('✅','Holiday removed');show()}
+ if(a==='hs'){await seed();toast('✅','Saved to database');show()}
+ if(a==='ht')await xl({Holidays:[['Date (YYYY-MM-DD)','Holiday name'],['2027-01-26','Republic Day'],['2027-08-15','Independence Day']]},'holiday-template.xlsx');
  }catch(x){reg=false;m(x.code==='auth/invalid-credential'?'Wrong email or password.':x.code==='auth/email-already-in-use'?'This email already has an account.':x.message)}});
 </script></body></html>
