@@ -21,6 +21,11 @@ main{max-width:900px;margin:0 auto;padding:16px 14px 60px}
 .card{background:color-mix(in srgb,var(--c) 90%,transparent);border:1px solid var(--ln);border-radius:8px;padding:14px;margin-bottom:14px}h2{font-size:16px;margin:0 0 10px}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:8px}label{display:flex;flex-direction:column;font-size:13px;color:var(--mu);gap:3px}
 textarea{font:inherit;padding:8px 10px;border:1px solid var(--ln);border-radius:6px;background:var(--c);color:var(--ink);width:100%}
+textarea{font:inherit;padding:8px 10px;border:1px solid var(--ln);border-radius:6px;background:var(--c);color:var(--ink);width:100%}
+.pw{position:relative;display:flex}.pw input{flex:1;padding-right:40px}.eye{position:absolute;right:4px;top:3px;background:none;border:0;cursor:pointer;font-size:18px}
+.chip{background:rgba(255,255,255,.2);border:0;color:inherit;border-radius:24px;padding:4px 14px 4px 4px;display:flex;gap:8px;align-items:center;cursor:pointer;text-align:left;font:inherit;line-height:1.2}.chip small{opacity:.85}
+.av,.chip img{width:38px;height:38px;border-radius:50%;background:#fff;color:var(--br);display:grid;place-items:center;font-weight:700;object-fit:cover}
+.toast{position:fixed;left:50%;top:90px;transform:translateX(-50%);background:var(--c);color:var(--ink);border:1px solid var(--ln);border-radius:14px;padding:14px 24px;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.3);font-weight:600;animation:pop .4s}.toast span{font-size:40px;display:block;text-align:center}@keyframes pop{from{transform:translateX(-50%) scale(.6);opacity:0}}
 input,select,button.b{font:inherit;padding:8px 10px;border:1px solid var(--ln);border-radius:6px;background:var(--c);color:var(--ink)}
 button.b{background:var(--br);color:var(--bi);border-color:var(--br);font-weight:600;cursor:pointer}button.b.g{background:none;color:var(--ink);border-color:var(--ln);font-weight:400}button.b.s{padding:4px 9px;font-size:13px}
 .tw{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--ln);white-space:nowrap}th{font-size:13px;color:var(--mu)}
@@ -28,7 +33,7 @@ button.b{background:var(--br);color:var(--bi);border-color:var(--br);font-weight
 .big{font-size:28px;font-weight:700}.mu{color:var(--mu);font-size:13px}.err{color:var(--no)}.login{max-width:380px;margin:40px auto}
 :focus-visible{outline:2px solid #2f6fb0;outline-offset:2px}
 </style></head><body>
-<header><h1 style="display:flex;align-items:center;gap:8px"><img src="logo.png" alt="" height="34" style="background:#fff;border-radius:6px;padding:2px" onerror="this.remove()">Attendance &amp; Leave</h1><nav id="nav"></nav></header>
+<header><div id="who"></div><h1 style="display:flex;align-items:center;gap:8px"><img src="logo.png" alt="" height="34" style="background:#fff;border-radius:6px;padding:2px" onerror="this.remove()">Attendance &amp; Leave</h1><nav id="nav"></nav></header>
 <main id="app"></main>
 <script type="module">
 // ======= 1. PASTE YOUR FIREBASE CONFIG HERE (Firebase console > Project settings > Your apps) =======
@@ -49,7 +54,7 @@ const off=d=>WK.includes(new Date(d+'T00:00').getDay())||!!HOL[d];
 const TYPES=['Annual leave','Sick leave','Casual leave','Unpaid leave','Other'];
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail,sendEmailVerification} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,addDoc,updateDoc,deleteDoc,collection,query,where,getDocs,Timestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc,addDoc,updateDoc,deleteDoc,collection,query,where,getDocs,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 /*3D moving background*/
 const IC={"cross": "<circle r=\"18\"/><path d=\"M0-9v18M-9 0h18\"/>", "ecg": "<path d=\"M-28 0h15l5-15 8 30 8-36 5 21h19\"/>", "pill": "<g transform=\"rotate(-35)\"><rect x=\"-22\" y=\"-11\" width=\"44\" height=\"22\" rx=\"11\"/><path d=\"M0-11v22\"/></g>", "heart": "<path d=\"M0 20c-22-14-26-34-12-42 7-4 12 0 12 6 0-6 5-10 12-6 14 8 10 28-12 42z\"/>", "calcheck": "<rect x=\"-18\" y=\"-16\" width=\"36\" height=\"34\" rx=\"4\"/><path d=\"M-18-6h36M-9-22v10M9-22v10M-8 6l5 5 10-10\"/>", "thermo": "<rect x=\"-5\" y=\"-24\" width=\"10\" height=\"38\" rx=\"5\"/><circle cy=\"18\" r=\"9\"/>", "syringe": "<g transform=\"rotate(-40)\"><rect x=\"-22\" y=\"-8\" width=\"44\" height=\"16\" rx=\"3\"/><path d=\"M22 0h16M-22 0h-14M-36-7v14M-8-8v16M0-8v16\"/></g>", "clock": "<circle r=\"19\"/><path d=\"M0-10v10l8 5\"/>", "clip": "<rect x=\"-16\" y=\"-20\" width=\"32\" height=\"40\" rx=\"4\"/><rect x=\"-8\" y=\"-25\" width=\"16\" height=\"8\" rx=\"3\"/><path d=\"M-8 2l5 5 11-12M-8 14h16\"/>", "id": "<rect x=\"-22\" y=\"-15\" width=\"44\" height=\"30\" rx=\"4\"/><circle cx=\"-9\" cy=\"-3\" r=\"5\"/><path d=\"M-16 10c1-6 13-6 14 0M4-5h14M4 3h14\"/>", "person": "<circle cx=\"-4\" cy=\"-8\" r=\"8\"/><path d=\"M-20 18c0-12 8-16 16-16s16 4 16 16M10 4l5 5 9-10\"/>", "calx": "<rect x=\"-18\" y=\"-16\" width=\"36\" height=\"34\" rx=\"4\"/><path d=\"M-18-6h36M-9-22v10M9-22v10M-6 4l12 12M6 4l-12 12\"/>", "steth": "<g transform=\"translate(-6 -1)\"><path d=\"M-14-22v12a14 14 0 0 0 28 0v-12M0 4v10a10 10 0 0 0 20 0\"/><circle cx=\"-14\" cy=\"-24\" r=\"2.5\"/><circle cx=\"14\" cy=\"-24\" r=\"2.5\"/><circle cx=\"20\" cy=\"20\" r=\"6\"/></g>", "hosp": "<rect x=\"-20\" y=\"-20\" width=\"40\" height=\"40\" rx=\"2\"/><path d=\"M0-14v12M-6-8h12M-5 20v-10h10v10M-14 4h4M10 4h4\"/>", "micro": "<g transform=\"rotate(-25)\"><rect x=\"-5\" y=\"-26\" width=\"10\" height=\"28\" rx=\"2\"/><path d=\"M-3 2h6v10h-6zM-12 16h24\"/></g><path d=\"M-20 24h40M8-6a16 16 0 0 1-2 30\"/>", "band": "<g transform=\"rotate(-40)\"><rect x=\"-24\" y=\"-9\" width=\"48\" height=\"18\" rx=\"9\"/><rect x=\"-8\" y=\"-9\" width=\"16\" height=\"18\"/></g>"};
 {const bg=document.createElement('div');bg.id='bg';
@@ -63,120 +68,137 @@ document.body.prepend(bg);
 addEventListener('pointermove',e=>{const x=e.clientX/innerWidth-.5,y=e.clientY/innerHeight-.5;bg.querySelectorAll('.w').forEach(w=>w.style.transform=`translate3d(${-x*w.dataset.d}px,${-y*w.dataset.d}px,0)`)},{passive:true})}
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),today=()=>fmt(new Date());
-const days=l=>{if(l.half)return .5;let n=0;for(let d=new Date(l.from+'T00:00');d<=new Date(l.to+'T00:00');d.setDate(d.getDate()+1))if(!off(fmt(d)))n++;return n};
-if(!firebaseConfig.apiKey){$('#app').innerHTML='<div class="card"><h2>Setup needed</h2><p>Paste your Firebase config into index.html (see the setup steps).</p></div>';throw 0}
+if(!firebaseConfig.apiKey){$('#app').innerHTML='<div class="card"><h2>Setup needed</h2><p>Paste your Firebase config into index.html.</p></div>';throw 0}
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
-let me=null,uid=null,tab='mine',reg=false,msg='',month=today().slice(0,7),rows=[];
-const dk=d=>String(d).replace(/\//g,'_');
-async function notify(type,id){try{if(!MAIL_URL)return;const token=await auth.currentUser.getIdToken();await fetch(MAIL_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({type,id,token})})}catch(e){}}
+const OWNER='tigerswapsky@gmail.com',C=n=>collection(db,n);
+let me=null,uid=null,tab='mine',reg=false,msg='',isOwner=false,em='',month=today().slice(0,7),photoData=null;
+const days=l=>{if(l.half)return .5;let n=0;for(let d=new Date(l.from+'T00:00');d<=new Date(l.to+'T00:00');d.setDate(d.getDate()+1))if(!off(fmt(d)))n++;return n};
 const get=async q=>(await getDocs(q)).docs.map(d=>({id:d.id,...d.data()}));
-const role=()=>me.role;
-
-const OWNER='tigerswapsky@gmail.com';let cfg={def:[],view:[],dept:{},act:{}},isOwner=false,em='';
-const activeNow=a=>{const n=Date.now();return a.from.toMillis()<=n&&n<=a.to.toMillis()};
-const eff=d=>{const a=cfg.act[d];if(a&&a.emails.length&&activeNow(a))return a.emails;return cfg.dept[d]||cfg.def};
-const canAppr=d=>isOwner||eff(d).includes(em);
-const canDecide=l=>l.uid!==uid&&(eff(l.dept).includes(em)||(isOwner&&!cfg.def.includes(String(l.email||'').toLowerCase())));
-const seeAll=()=>isOwner||cfg.view.includes(em);
-const myDepts=()=>{const o=new Set();Object.entries(cfg.dept).forEach(([d,l])=>l.includes(em)&&o.add(d));Object.entries(cfg.act).forEach(([d,a])=>a.emails.includes(em)&&activeNow(a)&&o.add(d));return [...o]};
-const canTeam=()=>seeAll()||myDepts().length>0;
-async function scoped(c,x=[]){const C=collection(db,c);if(seeAll())return get(query(C,...x));return (await Promise.all(myDepts().map(d=>get(query(C,where('dept','==',d),...x))))).flat()}
-onAuthStateChanged(auth,async u=>{if(reg)return;if(!u){me=null;return login()}
-  uid=u.uid;em=u.email.toLowerCase();const s=await getDoc(doc(db,'users',uid));if(!s.exists()){msg='Profile not found. Ask the owner.';await signOut(auth);return}
-  me=s.data();isOwner=em===OWNER&&u.emailVerified;
-  if(em===OWNER&&!u.emailVerified){sendEmailVerification(u).catch(()=>{});alert('A verification email was sent to '+u.email+'. Click the link in it, then sign in again to get owner powers.')}
-  try{const c=await getDoc(doc(db,'config','approval'));if(c.exists())cfg={def:[],view:[],dept:{},act:{},...c.data()}}catch(e){}
-  tab='mine';show()});
-
-function login(register){$('#nav').innerHTML='';$('#app').innerHTML=`<div class="card login"><img class="lg" src="logo.png" alt="SHSRC Maharashtra" style="display:block;margin:0 auto 14px;height:110px;background:#fff;border-radius:12px;padding:6px" onerror="this.remove()"><h2>${register?'Create account':'Sign in'}</h2>
- <div class="row" style="flex-direction:column;align-items:stretch">
- ${register?'<label>Full name<input id="n"></label><label>Department<input id="d" placeholder="e.g. Finance"></label>':''}
- <label>Email<input id="e" type="email" autocomplete="username"></label><label>Password<input id="p" type="password" autocomplete="${register?'new':'current'}-password"></label>
- <button class="b" data-a="${register?'reg':'in'}">${register?'Create account':'Sign in'}</button>
- <button class="b g" data-a="${register?'tologin':'toreg'}">${register?'I already have an account':'Create new account'}</button>
- ${register?'':'<button class="b g" data-a="reset">Forgot password</button>'}</div><p class="err" id="m">${esc(msg)}</p></div>`;msg=''}
-
-function show(){const t={mine:'My leave',check:'Check in'};if(canTeam()){t.team='Team';t.report='Report'}t.hol='Holidays';if(isOwner){t.people='People';t.cfg='Approvals'}
- $('#nav').innerHTML=Object.entries(t).map(([k,v])=>`<button class="${k===tab?'on':''}" data-a="tab" data-k="${k}">${v}</button>`).join('')+`<button data-a="mo">Motion: ${$('#bg').classList.contains('nomo')?'Off':'On'}</button><button data-a="out">Sign out</button>`;
- $('#app').innerHTML='<p class="mu">Loading…</p>';({mine,check,team,report,hol,people,cfg:settingsTab})[tab]().then(h=>$('#app').innerHTML=h).catch(e=>$('#app').innerHTML=`<div class="card err">Error: ${esc(e.message)}</div>`)}
-
-const used=ls=>ls.filter(l=>l.status==='Approved'&&l.type!=='Unpaid leave'&&l.from.startsWith(String(new Date().getFullYear()))).reduce((a,l)=>a+days(l),0);
+const has=t=>isOwner||(me.tabs||[]).includes(t);
+const apprs=()=>(me.reportsTo&&me.reportsTo.length)?me.reportsTo:[OWNER];
+const tm=ms=>ms?new Date(ms).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+const toast=(e,t)=>{const d=document.createElement('div');d.className='toast';d.innerHTML=`<span>${e}</span>${esc(t)}`;document.body.appendChild(d);setTimeout(()=>d.remove(),3400)};
 const tag=s=>`<span class="tag ${s}">${s}</span>`;
+async function notify(type,id){try{if(!MAIL_URL)return;const token=await auth.currentUser.getIdToken();await fetch(MAIL_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({type,id,token})})}catch(e){}}
+const xl=async(sheets,name)=>{if(!window.XLSX)await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s)});
+ const wb=XLSX.utils.book_new();Object.entries(sheets).forEach(([n,r])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(r),n));XLSX.writeFile(wb,name)};
+const LH=['Name','Email','Post','Department','Type','From','To','Days','Reason','Status','Decided by'],LR=l=>[l.name,l.email,l.post||'',l.dept||'',l.type,l.from,l.to,days(l),l.note||'',l.status,l.decidedBy||''];
+const used=ls=>ls.filter(l=>l.status==='Approved'&&l.type!=='Unpaid leave'&&l.from.startsWith(String(new Date().getFullYear()))).reduce((a,l)=>a+days(l),0);
+const avatar=u=>u.photo?`<img src="${u.photo}" alt="">`:`<span class="av">${esc((u.name||'?')[0].toUpperCase())}</span>`;
+
+onAuthStateChanged(auth,async u=>{if(reg)return;if(!u){me=null;return login()}
+ uid=u.uid;em=u.email.toLowerCase();const s=await getDoc(doc(db,'users',uid));if(!s.exists()){msg='Profile not found. Ask HR.';await signOut(auth);return}
+ me=s.data();isOwner=em===OWNER&&u.emailVerified;
+ if(em===OWNER&&!u.emailVerified){sendEmailVerification(u).catch(()=>{});alert('A verification email was sent to '+u.email+'. Click the link in it, then sign in again to get HR powers.')}
+ tab='mine';show()});
+
+const pw=(id,ac)=>`<div class="pw"><input id="${id}" type="password" autocomplete="${ac}"><button type="button" class="eye" data-a="eye" aria-label="Show or hide password">👁</button></div>`;
+function login(r){$('#nav').innerHTML='';$('#who').innerHTML='';$('#app').innerHTML=`<div class="card login"><img class="lg" src="logo.png" alt="SHSRC Maharashtra" style="display:block;margin:0 auto 14px;height:110px;background:#fff;border-radius:12px;padding:6px" onerror="this.remove()"><h2>${r?'Create account':'Sign in'}</h2>
+ <div class="row" style="flex-direction:column;align-items:stretch">
+ ${r?'<label>Full name *<input id="n"></label><label>Designation (optional)<input id="po" placeholder="e.g. Consultant"></label><label>Department (optional)<input id="d" placeholder="e.g. Finance"></label><label>Mobile number *<input id="mo" type="tel" inputmode="numeric" maxlength="10"></label><label>Email *<input id="e" type="email" autocomplete="username"></label>':'<label>Email or mobile number<input id="e" autocomplete="username"></label>'}
+ <label>Password${r?' *':''}${pw('p',r?'new-password':'current-password')}</label>
+ <button class="b" data-a="${r?'reg':'in'}">${r?'Create account':'Sign in'}</button><button class="b g" data-a="${r?'tl':'tr'}">${r?'I already have an account':'Create new account'}</button>
+ ${r?'':'<button class="b g" data-a="rs">Forgot password</button>'}</div><p class="err" id="m">${esc(msg)}</p></div>`;msg=''}
+
+function show(){const t={mine:'My leave',check:'Check in'};if(has('team'))t.team='Team';if(has('report'))t.report='Report';t.hol='Holidays';if(isOwner)t.people='People';
+ $('#who').innerHTML=`<button class="chip" data-a="tab" data-k="prof">${avatar(me)}<span><b>${esc(me.name)}</b><br><small>${esc([me.post,me.dept].filter(Boolean).join(' · ')||'Add designation')}${me.doj?' · DOJ '+esc(me.doj):''}</small></span></button>`;
+ $('#nav').innerHTML=Object.entries(t).map(([k,v])=>`<button class="${k===tab?'on':''}" data-a="tab" data-k="${k}">${v}</button>`).join('')+`<button data-a="mo">Motion: ${$('#bg')&&$('#bg').classList.contains('nomo')?'Off':'On'}</button><button data-a="out">Sign out</button>`;
+ $('#app').innerHTML='<p class="mu">Loading…</p>';({mine,check,team,report,hol,people,prof})[tab]().then(h=>$('#app').innerHTML=h).catch(e=>$('#app').innerHTML=`<div class="card err">Error: ${esc(e.message)}</div>`)}
 
 async function mine(){
- const ls=(await get(query(collection(db,'leaves'),where('uid','==',uid)))).sort((a,b)=>a.from<b.from?1:-1),u=used(ls),al=me.allow??21;
- return `<div class="card"><h2>Hello, ${esc(me.name)}</h2><span class="big">${al-u}</span> <span class="mu">days of leave left this year (${u} used of ${al}) · ${esc(me.dept)}</span></div>
+ const ls=(await get(query(C('leaves'),where('uid','==',uid)))).sort((a,b)=>a.from<b.from?1:-1),u=used(ls),al=me.allow??21;
+ return `<div class="card"><h2>Hello, ${esc(me.name)}</h2><span class="big">${al-u}</span> <span class="mu">days of leave left this year (${u} used of ${al})</span></div>
  <div class="card"><h2>Request leave</h2><div class="row"><label>Type<select id="t">${TYPES.map(t=>`<option>${t}</option>`).join('')}</select></label>
  <label>From<input type="date" id="f" value="${today()}"></label><label>To<input type="date" id="o" value="${today()}"></label>
  <label>Reason<input id="r" placeholder="Optional"></label><label style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="h">Half day</label>
  <button class="b" data-a="req">Submit</button></div><p class="err" id="m"></p></div>
- <div class="card"><h2>My requests</h2>${ls.length?`<div class="tw"><table><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr>${ls.map(l=>`<tr><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${tag(l.status)}</td><td>${l.status==='Pending'?`<button class="b s g" data-a="del" data-k="${l.id}">Cancel</button>`:''}</td></tr>`).join('')}</table></div>`:'<p class="mu">No requests yet.</p>'}</div>`}
+ <div class="card"><div class="row"><h2 style="margin:0">My requests</h2><button class="b s g" data-a="dlmine">⬇ Download my leave data</button></div>${ls.length?`<div class="tw"><table><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr>${ls.map(l=>`<tr><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${tag(l.status)}</td><td>${l.status==='Pending'?`<button class="b s g" data-a="del" data-k="${l.id}">Cancel</button>`:''}</td></tr>`).join('')}</table></div>`:'<p class="mu">No requests yet.</p>'}</div>`}
 
-async function check(){
- const s=await getDoc(doc(db,'attendance',today()+'_'+uid)),cur=s.exists()?s.data().status:'';
- return `<div class="card"><h2>Today, ${today()}</h2><p>${cur?`You are marked <b>${cur}</b>. You can change it below.`:'You have not checked in yet.'}</p>
- <div class="row">${['Present','Late','Half day'].map(k=>`<button class="b ${cur===k?'':'g'}" data-a="ci" data-k="${k}">${k}</button>`).join('')}</div><p class="mu" id="m"></p></div>`}
+async function check(){const s=await getDoc(doc(db,'attendance',today()+'_'+uid)),d=s.exists()?s.data():null;
+ return `<div class="card"><h2>Today, ${today()}</h2><p>${d?`You are marked <b>${d.status}</b> at <b>${tm(d.at)}</b>.`:'You have not checked in yet.'}</p>
+ <div class="row">${['Present','Late','Half day'].map(k=>`<button class="b ${d&&d.status===k?'':'g'}" data-a="ci" data-k="${k}">${k}</button>`).join('')}</div></div>`}
 
+async function prof(){photoData=null;return `<div class="card"><h2>My profile</h2><div class="row"><div id="phv" style="width:80px;height:80px">${me.photo?`<img src="${me.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`:avatar(me).replace('class="av"','class="av" style="width:80px;height:80px;font-size:32px"')}</div>
+ <label>Profile photo<input type="file" id="ph" accept="image/*"></label></div><div class="row">
+ <label>Full name<input id="pn" value="${esc(me.name)}"></label><label>Designation<input id="pp" value="${esc(me.post||'')}"></label><label>Department<input id="pd" value="${esc(me.dept||'')}"></label>
+ <label>Date of joining<input type="date" id="pj" value="${esc(me.doj||'')}"></label></div><p class="mu">Email: ${esc(me.email||em)} · Mobile: ${esc(me.mobile||'')}</p>
+ <button class="b" data-a="ps">Save profile</button><p class="err" id="m"></p></div>`}
+
+const canDecide=l=>l.uid!==uid&&l.status==='Pending'&&!l.head&&(isOwner||(l.approvers||[]).includes(em));
 async function team(){
- const adm=seeAll(),f=(c,...x)=>scoped(c,x);
- const [ls,us,at]=await Promise.all([f('leaves'),f('users'),f('attendance',where('date','==',today()))]);
- const pend=ls.filter(l=>l.status==='Pending'),nm=Object.fromEntries(us.map(u=>[u.id,u.name])),t=today();
- const st=u=>{const a=at.find(x=>x.uid===u.id);if(a)return a.status;if(ls.some(l=>l.uid===u.id&&l.status==='Approved'&&l.from<=t&&t<=l.to))return'On leave';return off(t)?(HOL[t]||'Off day'):'Not in yet'};
- return `<div class="card"><h2>Waiting for approval (${pend.length})</h2>${pend.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th></th></tr>${pend.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${esc(l.note||'')}</td>
- <td>${canDecide(l)?`<button class="b s" data-a="set" data-k="${l.id}" data-v="Approved">Approve</button> <button class="b s g" data-a="set" data-k="${l.id}" data-v="Rejected">Reject</button>`:'<span class="mu">View only</span>'}</td></tr>`).join('')}</table></div>`:'<p class="mu">Nothing waiting.</p>'}</div>
- <div class="card"><h2>Today</h2><div class="tw"><table><tr><th>Name</th>${adm?'<th>Department</th>':''}<th>Status</th></tr>${us.sort((a,b)=>a.name<b.name?-1:1).map(u=>`<tr><td>${esc(u.name)}</td>${adm?`<td>${esc(u.dept)}</td>`:''}<td>${st(u)}</td></tr>`).join('')}</table></div></div>`}
+ const [ls,us]=await Promise.all([get(isOwner?query(C('leaves')):query(C('leaves'),where('approvers','array-contains',em))),get(isOwner?query(C('users')):query(C('users'),where('reportsTo','array-contains',em)))]);
+ const t=today(),ats=await Promise.all(us.map(u=>getDoc(doc(db,'attendance',t+'_'+u.id)))),at={};ats.forEach((s,i)=>{if(s.exists())at[us[i].id]=s.data()});
+ const pend=ls.filter(l=>l.status==='Pending'),hist=ls.filter(l=>l.status!=='Pending').sort((a,b)=>a.from<b.from?1:-1).slice(0,100);
+ const st=u=>{const a=at[u.id];if(a)return a.status;if(ls.some(l=>l.uid===u.id&&l.status==='Approved'&&l.from<=t&&t<=l.to))return'On leave';return off(t)?(HOL[t]||'Off day'):'Not in yet'};
+ const row=l=>`<td>${esc(l.name)}</td><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${esc(l.note||'')}</td>`;
+ return `<div class="card"><h2>Waiting for approval (${pend.length})</h2>${pend.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th></th></tr>${pend.map(l=>`<tr>${row(l)}<td>${canDecide(l)?`<button class="b s" data-a="set" data-k="${l.id}" data-v="Approved">Approve</button> <button class="b s g" data-a="set" data-k="${l.id}" data-v="Rejected">Reject</button>`:'<span class="mu">View only</span>'}</td></tr>`).join('')}</table></div>`:'<p class="mu">Nothing waiting.</p>'}</div>
+ <div class="card"><h2>Today</h2><div class="tw"><table><tr><th>Name</th><th>Department</th><th>Status</th><th>Time</th></tr>${us.sort((a,b)=>a.name<b.name?-1:1).map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.dept||'')}</td><td>${st(u)}</td><td>${tm((at[u.id]||{}).at)}</td></tr>`).join('')}</table></div></div>
+ <div class="card"><h2>Leave history</h2>${hist.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th>Status</th></tr>${hist.map(l=>`<tr>${row(l)}<td>${tag(l.status)}</td></tr>`).join('')}</table></div>`:'<p class="mu">No history yet.</p>'}</div>`}
 
 async function hol(){const e=Object.entries(HOL).sort();return `<div class="card"><h2>Holidays 2026</h2><div class="tw"><table><tr><th>Date</th><th>Day</th><th>Holiday</th></tr>${e.map(([d,n])=>`<tr><td>${d}</td><td>${new Date(d+'T00:00').toLocaleDateString('en-IN',{weekday:'long'})}</td><td>${esc(n)}</td></tr>`).join('')}</table></div><p class="mu">Saturdays and Sundays are weekly offs.</p></div>`}
 
+let rep=[];
 async function report(){
- const f=c=>scoped(c);
- const [ls,us,at]=await Promise.all([f('leaves'),f('users'),f('attendance')]);
+ const [us,ls,at]=await Promise.all([get(query(C('users'))),get(query(C('leaves'))),get(query(C('attendance'),where('date','>=',month+'-01'),where('date','<=',month+'-31')))]);
  const [y,m]=month.split('-').map(Number),n=new Date(y,m,0).getDate(),t=today();
- rows=us.sort((a,b)=>a.name<b.name?-1:1).map(u=>{const c={Present:0,Late:0,'Half day':0,Leave:0,Absent:0};
-  for(let i=1;i<=n;i++){const d=month+'-'+String(i).padStart(2,'0');if(d>t||off(d))continue;
-   const a=at.find(x=>x.uid===u.id&&x.date===d);if(a){c[a.status]++;continue}
-   const l=ls.find(x=>x.uid===u.id&&x.status==='Approved'&&x.from<=d&&d<=x.to);
-   if(l)c.Leave+=l.half?.5:1;else c.Absent++}
-  return [u.name,u.dept,c.Present,c.Late,c['Half day'],c.Leave,c.Absent]});
- return `<div class="card"><h2>Monthly report</h2><div class="row"><label>Month<input type="month" id="rm" value="${month}"></label><button class="b" data-a="csv">Download CSV</button></div>
- <div class="tw"><table><tr><th>Name</th><th>Department</th><th>Present</th><th>Late</th><th>Half day</th><th>Leave</th><th>Absent</th></tr>${rows.map(r=>`<tr>${r.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div>
+ rep=us.sort((a,b)=>a.name<b.name?-1:1).map(u=>{const c={Present:0,Late:0,'Half day':0,Leave:0,Absent:0};
+  for(let i=1;i<=n;i++){const d=month+'-'+String(i).padStart(2,'0');if(d>t||off(d))continue;const a=at.find(x=>x.uid===u.id&&x.date===d);if(a){c[a.status]++;continue}
+   const l=ls.find(x=>x.uid===u.id&&x.status==='Approved'&&x.from<=d&&d<=x.to);if(l)c.Leave+=l.half?.5:1;else c.Absent++}
+  return [u.name,u.post||'',u.dept||'',c.Present,c.Late,c['Half day'],c.Leave,c.Absent,(u.allow??21)-used(ls.filter(l=>l.uid===u.id))]});
+ return `<div class="card"><h2>Monthly report</h2><div class="row"><label>Month<input type="month" id="rm" value="${month}"></label><button class="b" data-a="dlrep">Download Excel</button></div>
+ <div class="tw"><table><tr><th>Name</th><th>Post</th><th>Department</th><th>Present</th><th>Late</th><th>Half day</th><th>Leave</th><th>Absent</th><th>Leave left</th></tr>${rep.map(r=>`<tr>${r.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div>
  <p class="mu">Weekends and holidays are not counted. A working day with no check-in and no approved leave counts as Absent.</p></div>`}
 
+let PU=[];
 async function people(){
- const us=(await get(query(collection(db,'users')))).sort((a,b)=>a.name<b.name?-1:1);
- return `<div class="card"><h2>People (owner)</h2><p class="mu">Edit any person's name, post (role name), department and yearly leave allowance. The post is included in the leave emails. Approvers are set in the Approvals tab.</p><div class="tw"><table><tr><th>Email</th><th>Name</th><th>Post / role name</th><th>Department</th><th>Allowance</th><th></th></tr>
- ${us.map(u=>`<tr data-u="${u.id}"><td>${esc(u.email||'')}</td><td><input class="nm" value="${esc(u.name)}"></td><td><input class="po" value="${esc(u.post||'')}" placeholder="e.g. ED, Deputy ED, Consultant"></td><td><input class="de" value="${esc(u.dept)}"></td><td><input class="al" type="number" min="0" style="width:80px" value="${u.allow??21}"></td><td><button class="b s" data-a="sp">Save</button></td></tr>`).join('')}</table></div></div>`}
-async function settingsTab(){const j=l=>(l||[]).join(', '),d10=t=>t.toDate().toISOString().slice(0,10),
- dl=Object.entries(cfg.dept).map(([d,l])=>d+' = '+j(l)).join('\n'),al=Object.entries(cfg.act).map(([d,a])=>[d,j(a.emails),d10(a.from),d10(a.to)].join(' | ')).join('\n');
- return `<div class="card"><h2>Approval settings (owner only)</h2><p class="mu">Use the exact email each person used to create their account.</p>
- <label>Default approvers (ED)<input id="c_def" value="${esc(j(cfg.def))}"></label><br>
- <label>Can see all leave and attendance (ED, Deputy ED)<input id="c_view" value="${esc(j(cfg.view))}"></label><br>
- <label>Department approvers, one per line: Department = email1, email2<textarea id="c_dept" rows="4">${esc(dl)}</textarea></label><br>
- <label>Temporary approvers, one per line: Department | emails | from (YYYY-MM-DD) | to (YYYY-MM-DD)<textarea id="c_act" rows="3">${esc(al)}</textarea></label>
- <p><button class="b" data-a="cs">Save settings</button></p><p class="mu" id="m"></p></div>`}
+ PU=(await get(query(C('users')))).sort((a,b)=>a.name<b.name?-1:1);const nm={};PU.forEach(u=>nm[(u.email||'').toLowerCase()]=u.name);
+ const cb=(u,t,l)=>`<label style="flex-direction:row;gap:3px;align-items:center"><input type="checkbox" class="tb" data-t="${t}" ${(u.tabs||[]).includes(t)?'checked':''}>${l}</label>`;
+ return `<div class="card"><div class="row"><h2 style="margin:0">People (HR)</h2><button class="b s g" data-a="dlall">⬇ Download all data (Excel)</button></div><p class="mu">Edit details, tab access and the approval line. ✏ changes who a person's leave goes to. Tick "ED/head" for a person whose leave needs no approval.</p>
+ <div class="tw"><table><tr><th>Name</th><th>Designation</th><th>Department</th><th>Allowance</th><th>Approval goes to</th><th>Access</th><th>Head</th><th></th></tr>
+ ${PU.map(u=>`<tr data-u="${u.id}"><td><input class="nm" value="${esc(u.name)}"><div class="mu">${esc(u.email||'')} · ${esc(u.mobile||'')}</div></td><td><input class="po" value="${esc(u.post||'')}"></td><td><input class="de" value="${esc(u.dept||'')}"></td>
+ <td><input class="al" type="number" min="0" style="width:70px" value="${u.allow??21}"></td><td>${(u.reportsTo&&u.reportsTo.length?u.reportsTo.map(e=>esc(nm[e]||e)).join(', '):'HR (default)')} <button class="b s g" data-a="rl" title="Change approval line">✏</button></td>
+ <td><div style="display:flex;gap:6px;flex-wrap:wrap">${cb(u,'team','Team')}${cb(u,'report','Report')}${cb(u,'holidays','Holidays')}<button class="b s g" data-a="alltabs">All</button></div></td>
+ <td><input type="checkbox" class="hd" ${u.head?'checked':''}></td><td style="white-space:nowrap"><button class="b s" data-a="sp">Save</button> <button class="b s g" data-a="du">Delete</button></td></tr>`).join('')}</table></div></div>`}
 
-document.addEventListener('change',e=>{if(e.target.id==='rm'&&e.target.value){month=e.target.value;show()}});
+const bar=()=>{};
+document.addEventListener('change',async e=>{const t=e.target;
+ if(t.id==='rm'&&t.value){month=t.value;show()}
+ if(t.id==='ph'&&t.files[0]){const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,220/Math.max(img.width,img.height));c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);photoData=c.toDataURL('image/jpeg',.7);$('#phv').innerHTML=`<img src="${photoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`};img.src=URL.createObjectURL(t.files[0])}});
+const mobId=async v=>{v=v.trim();if(v.includes('@'))return v;const s=await getDoc(doc(db,'phoneIndex',v.replace(/\D/g,'').slice(-10)));if(!s.exists())throw {message:'Mobile number not found.'};return s.data().email};
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,k=b.dataset.k,m=t=>{const x=$('#m');if(x)x.textContent=t;else alert(t)};
  try{
- if(a==='tab'){tab=k;return show()}
- if(a==='mo'){const g=$('#bg');g.classList.toggle('nomo');try{localStorage.setItem('mo',g.classList.contains('nomo')?'0':'1')}catch(e){}return show()}
- if(a==='csv'){const q=v=>'"'+String(v).replace(/"/g,'""')+'"',x=[['Name','Department','Present','Late','Half day','Leave','Absent'],...rows].map(r=>r.map(q).join(',')).join('\n'),el=document.createElement('a');el.href=URL.createObjectURL(new Blob(['\ufeff'+x],{type:'text/csv'}));el.download='attendance-'+month+'.csv';el.click();return}
- if(a==='out')return signOut(auth);
- if(a==='toreg')return login(1);if(a==='tologin')return login();
- if(a==='reset'){const em=$('#e').value;if(!em)return m('Type your email first.');await sendPasswordResetEmail(auth,em);return m('Reset email sent.')}
- if(a==='in'){await signInWithEmailAndPassword(auth,$('#e').value,$('#p').value)}
- if(a==='reg'){const n=$('#n').value.trim(),d=$('#d').value.trim();if(!n||!d)return m('Enter name and department.');
-  reg=true;const c=await createUserWithEmailAndPassword(auth,$('#e').value,$('#p').value);uid=c.user.uid;
-  me={name:n,dept:d,role:'staff',allow:21};await setDoc(doc(db,'users',uid),me);em=c.user.email.toLowerCase();if(em===OWNER){sendEmailVerification(c.user).catch(()=>{});alert('A verification email was sent to '+c.user.email+'. Click the link in it, then sign in again to get owner powers.')}reg=false;tab='mine';show()}
+ if(a==='tab'){tab=k;return show()}if(a==='out')return signOut(auth);if(a==='tr')return login(1);if(a==='tl')return login();
+ if(a==='eye'){const i=b.previousElementSibling;i.type=i.type==='password'?'text':'password';return}
+ if(a==='mo'){const g=$('#bg');g.classList.toggle('nomo');try{localStorage.setItem('mo',g.classList.contains('nomo')?'0':'1')}catch(x){}return show()}
+ if(a==='rs'){const v=$('#e').value;if(!v)return m('Type your email or mobile number first.');await sendPasswordResetEmail(auth,await mobId(v));return m('Password reset email sent.')}
+ if(a==='in')await signInWithEmailAndPassword(auth,await mobId($('#e').value),$('#p').value);
+ if(a==='reg'){const n=$('#n').value.trim(),mo=$('#mo').value.replace(/\D/g,''),ei=$('#e').value.trim(),p=$('#p').value;
+  if(!n||!ei||!p)return m('Please fill name, email and password.');if(!/^[6-9]\d{9}$/.test(mo))return m('Enter a valid 10-digit mobile number.');
+  if((await getDoc(doc(db,'phoneIndex',mo))).exists())return m('This mobile number is already registered.');
+  reg=true;const c=await createUserWithEmailAndPassword(auth,ei,p);uid=c.user.uid;em=c.user.email.toLowerCase();
+  me={name:n,nameLower:n.toLowerCase(),email:em,mobile:mo,post:$('#po').value.trim(),dept:$('#d').value.trim(),role:'staff',allow:21,doj:''};
+  const w=writeBatch(db);w.set(doc(db,'users',uid),me);w.set(doc(db,'phoneIndex',mo),{email:em,uid});await w.commit();reg=false;isOwner=false;
+  if(em===OWNER){sendEmailVerification(c.user).catch(()=>{});alert('A verification email was sent to '+em+'. Click the link in it, then sign in again to get HR powers.')}tab='mine';show()}
  if(a==='req'){const f=$('#f').value,o=$('#o').value,h=$('#h').checked;if(!f||!o||o<f)return m('Check the dates.');if(h&&f!==o)return m('Half day needs the same date.');
-  const ref=await addDoc(collection(db,'leaves'),{uid,email:auth.currentUser.email,name:me.name,dept:me.dept,type:$('#t').value,from:f,to:o,half:h,note:$('#r').value.trim(),status:cfg.def.includes(em)?'Approved':'Pending',decidedBy:cfg.def.includes(em)?'self':''});if(!cfg.def.includes(em))notify('applied',ref.id);show()}
+  const hd=!!me.head,ref=await addDoc(C('leaves'),{uid,email:em,name:me.name,post:me.post||'',dept:me.dept||'',type:$('#t').value,from:f,to:o,half:h,note:$('#r').value.trim(),status:hd?'Approved':'Pending',decidedBy:hd?'self':'',head:hd,approvers:apprs(),created:Date.now()});
+  if(!hd)notify('applied',ref.id);toast('😊','Your leave request was submitted!');show()}
  if(a==='del'&&confirm('Cancel this request?')){await deleteDoc(doc(db,'leaves',k));show()}
- if(a==='ci'){await setDoc(doc(db,'attendance',today()+'_'+uid),{uid,name:me.name,dept:me.dept,date:today(),status:k});show()}
+ if(a==='dlmine'){const ls=(await get(query(C('leaves'),where('uid','==',uid)))).sort((a,b)=>a.from<b.from?1:-1);await xl({'My leave':[LH,...ls.map(LR)]},'my-leave-data.xlsx')}
+ if(a==='ci'){const id=today()+'_'+uid,s=await getDoc(doc(db,'attendance',id));await setDoc(doc(db,'attendance',id),{uid,name:me.name,dept:me.dept||'',date:today(),status:k,at:s.exists()?s.data().at:Date.now(),approvers:apprs()});show()}
  if(a==='set'){await updateDoc(doc(db,'leaves',k),{status:b.dataset.v,decidedBy:em});notify('decided',k);show()}
- if(a==='sp'){const r=b.closest('tr');await updateDoc(doc(db,'users',r.dataset.u),{name:r.querySelector('.nm').value.trim(),post:r.querySelector('.po').value.trim(),dept:r.querySelector('.de').value.trim(),allow:+r.querySelector('.al').value||0});b.textContent='Saved'}
- if(a==='cs'){const E=t=>t.split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),def=E($('#c_def').value),view=[...new Set([...E($('#c_view').value),...def])],dept={},act={};
-  $('#c_dept').value.split('\n').forEach(l=>{const [d,e]=l.split('=');if(d&&e&&d.trim())dept[d.trim()]=E(e)});
-  $('#c_act').value.split('\n').forEach(l=>{const [d,e,f1,t1]=l.split('|').map(x=>x.trim());if(d&&e&&f1&&t1)act[d]={emails:E(e),from:Timestamp.fromDate(new Date(f1+'T00:00:00')),to:Timestamp.fromDate(new Date(t1+'T23:59:59'))}});
-  await setDoc(doc(db,'config','approval'),{def,view,dept,act});cfg={def,view,dept,act};m('Saved.')}
+ if(a==='ps'){const d={name:$('#pn').value.trim(),post:$('#pp').value.trim(),dept:$('#pd').value.trim(),doj:$('#pj').value};if(!d.name)return m('Name is required.');d.nameLower=d.name.toLowerCase();if(photoData)d.photo=photoData;await updateDoc(doc(db,'users',uid),d);me={...me,...d};toast('✅','Profile saved');show()}
+ if(a==='dlrep')await xl({Report:[['Name','Post','Department','Present','Late','Half day','Leave','Absent','Leave left'],...rep]},'attendance-report-'+month+'.xlsx');
+ if(a==='alltabs'){b.closest('tr').querySelectorAll('.tb').forEach(c=>c.checked=true);return}
+ if(a==='sp'){const r=b.closest('tr'),q=s=>r.querySelector(s);await updateDoc(doc(db,'users',r.dataset.u),{name:q('.nm').value.trim(),nameLower:q('.nm').value.trim().toLowerCase(),post:q('.po').value.trim(),dept:q('.de').value.trim(),allow:+q('.al').value||0,head:q('.hd').checked,tabs:[...r.querySelectorAll('.tb:checked')].map(c=>c.dataset.t)});b.textContent='Saved'}
+ if(a==='rl'){const r=b.closest('tr'),u=PU.find(x=>x.id===r.dataset.u),v=prompt('Who should approve '+u.name+'\'s leave?\nType their login email(s), separated by commas. Leave empty = HR only.',(u.reportsTo||[]).join(', '));if(v===null)return;
+  const list=v.split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),w=writeBatch(db);w.update(doc(db,'users',u.id),{reportsTo:list});
+  (await get(query(C('leaves'),where('uid','==',u.id),where('status','==','Pending')))).forEach(l=>w.update(doc(db,'leaves',l.id),{approvers:list.length?list:[OWNER]}));await w.commit();toast('✅','Approval line updated');show()}
+ if(a==='du'){const r=b.closest('tr'),u=PU.find(x=>x.id===r.dataset.u);if(u.email&&u.email.toLowerCase()===OWNER)return alert('You cannot delete the HR account.');
+  if(!confirm('Delete ALL data of '+u.name+' (profile, leaves, attendance)? This cannot be undone. Download the data first if needed.'))return;
+  const w=writeBatch(db);(await get(query(C('leaves'),where('uid','==',u.id)))).forEach(l=>w.delete(doc(db,'leaves',l.id)));(await get(query(C('attendance'),where('uid','==',u.id)))).forEach(l=>w.delete(doc(db,'attendance',l.id)));
+  if(u.mobile)w.delete(doc(db,'phoneIndex',u.mobile));w.delete(doc(db,'users',u.id));await w.commit();alert('Data deleted. Their login still exists: remove it in Firebase > Authentication > Users if needed.');show()}
+ if(a==='dlall'){b.textContent='Preparing…';const [us,ls,at]=await Promise.all([get(query(C('users'))),get(query(C('leaves'))),get(query(C('attendance')))]);
+  await xl({People:[['Name','Email','Mobile','Designation','Department','Date of joining','Allowance','Approval goes to','Head','Tab access'],...us.map(u=>[u.name,u.email||'',u.mobile||'',u.post||'',u.dept||'',u.doj||'',u.allow??21,(u.reportsTo||[]).join(', '),u.head?'Yes':'',(u.tabs||[]).join(', ')])],
+   Leaves:[LH,...ls.map(LR)],Attendance:[['Name','Department','Date','Status','Time'],...at.sort((x,y)=>x.date<y.date?1:-1).map(x=>[x.name,x.dept||'',x.date,x.status,tm(x.at)])]},'shsrc-all-data-'+today()+'.xlsx');b.textContent='⬇ Download all data (Excel)'}
  }catch(x){reg=false;m(x.code==='auth/invalid-credential'?'Wrong email or password.':x.code==='auth/email-already-in-use'?'This email already has an account.':x.message)}});
 </script></body></html>
