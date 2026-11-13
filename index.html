@@ -86,6 +86,9 @@ const xl=async(sheets,name)=>{if(!window.XLSX)await new Promise((r,j)=>{const s=
  const wb=XLSX.utils.book_new();Object.entries(sheets).forEach(([n,r])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(r),n));XLSX.writeFile(wb,name)};
 const LH=['Name','Email','Post','Department','Type','From','To','Days','Reason','Status','Decided by'],LR=l=>[l.name,l.email,l.post||'',l.dept||'',l.type,l.from,l.to,days(l),l.note||'',l.status,l.decidedBy||''];
 const used=ls=>ls.filter(l=>l.status==='Approved'&&l.type!=='Unpaid leave'&&l.from.startsWith(String(new Date().getFullYear()))).reduce((a,l)=>a+days(l),0);
+const gp=()=>new Promise((res,rej)=>{if(!navigator.geolocation)return rej({message:'This device does not support location.'});navigator.geolocation.getCurrentPosition(p=>res(p.coords),e=>rej({message:e.code===1?'Location permission was denied. Allow location for this site in your browser settings and try again.':'Could not get your location. Turn on GPS/location and try again.'}),{enableHighAccuracy:true,timeout:20000,maximumAge:0})});
+const hav=(a,b,c,d)=>{const R=6371000,r=x=>x*Math.PI/180,x=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
+const offCfg=async()=>{try{const s=await getDoc(doc(db,'config','office'));return s.exists()?s.data():null}catch(e){return null}};
 let HDB=false;
 async function loadHol(){try{const h=await get(query(C('holidays')));HDB=h.length>0;if(HDB){Object.keys(HOL).forEach(k=>delete HOL[k]);h.forEach(x=>HOL[x.id]=x.name)}}catch(e){}}
 async function seed(){if(HDB)return;const w=writeBatch(db);Object.entries(HOL).forEach(([d,n])=>w.set(doc(db,'holidays',d),{name:n}));await w.commit();HDB=true}
@@ -128,9 +131,13 @@ async function mine(){
  <button class="b" data-a="req">Submit</button></div><p class="err" id="m"></p></div>
  <div class="card"><div class="row"><h2 style="margin:0">My requests</h2><button class="b s g" data-a="dlmine">⬇ Download my leave data</button></div>${ls.length?`<div class="tw"><table><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr>${ls.map(l=>`<tr><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${tag(l.status)}</td><td>${l.status==='Pending'?`<button class="b s g" data-a="del" data-k="${l.id}">Cancel</button>`:''}</td></tr>`).join('')}</table></div>`:'<p class="mu">No requests yet.</p>'}</div>`}
 
-async function check(){const s=await getDoc(doc(db,'attendance',today()+'_'+uid)),d=s.exists()?s.data():null;
+async function check(){const s=await getDoc(doc(db,'attendance',today()+'_'+uid)),d=s.exists()?s.data():null,o=await offCfg();let loc=null,note='';
+ if(o&&!isOwner){try{const c=await gp();loc={acc:Math.round(c.accuracy),dist:Math.round(hav(o.lat,o.lng,c.latitude,c.longitude))}}catch(e){note=e.message}}
+ const inside=!o||isOwner||(loc&&loc.dist<=o.radius&&loc.acc<=200);
+ if(!inside&&loc)note=loc.acc>200?`Your location is not accurate enough (±${loc.acc} m). Go near a window or outside, turn on GPS and try again.`:`You are about ${loc.dist} m from the office. Check-in works only within ${o.radius} m of the office premises.`;
  return `<div class="card"><h2>Today, ${today()}</h2><p>${d?`You are marked <b>${d.status}</b> at <b>${tm(d.at)}</b>.`:'You have not checked in yet.'}</p>
- <div class="row">${['Present','Late','Half day'].map(k=>`<button class="b ${d&&d.status===k?'':'g'}" data-a="ci" data-k="${k}">${k}</button>`).join('')}</div></div>`}
+ ${inside?`<div class="row">${['Present','Late','Half day'].map(k=>`<button class="b ${d&&d.status===k?'':'g'}" data-a="ci" data-k="${k}">${k}</button>`).join('')}</div>${o&&!isOwner?`<p class="mu">📍 You are inside the office area (about ${loc.dist} m from the centre).</p>`:''}`:`<p class="err">${esc(note)}</p><button class="b g" data-a="tab" data-k="check">Check my location again</button>`}
+ ${isOwner&&o?'<p class="mu">HR: the office-location check is not applied to you.</p>':''}${!o?'<p class="mu">Office location is not set yet, so check-in works from anywhere.</p>':''}</div>`}
 
 async function prof(){photoData=null;return `<div class="card"><h2>My profile</h2><div class="row"><div id="phv" style="width:80px;height:80px">${me.photo?`<img src="${me.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`:avatar(me).replace('class="av"','class="av" style="width:80px;height:80px;font-size:32px"')}</div>
  <label>Profile photo<input type="file" id="ph" accept="image/*"></label></div><div class="row">
@@ -169,9 +176,12 @@ async function report(){
 
 let PU=[];
 async function people(){
- PU=(await get(query(C('users')))).sort((a,b)=>a.name<b.name?-1:1);const nm={};PU.forEach(u=>nm[(u.email||'').toLowerCase()]=u.name);
+ const oc=await offCfg();PU=(await get(query(C('users')))).sort((a,b)=>a.name<b.name?-1:1);const nm={};PU.forEach(u=>nm[(u.email||'').toLowerCase()]=u.name);
  const cb=(u,t,l)=>`<label style="flex-direction:row;gap:3px;align-items:center"><input type="checkbox" class="tb" data-t="${t}" ${(u.tabs||[]).includes(t)?'checked':''}>${l}</label>`;
- return `<div class="card"><div class="row"><h2 style="margin:0">People (HR)</h2><button class="b s g" data-a="dlall">⬇ Download all data (Excel)</button></div><p class="mu">Edit details, tab access and the approval line. ✏ changes who a person's leave goes to. Tick "ED/head" for a person whose leave needs no approval.</p>
+ return `<div class="card"><h2>📍 Office location (for check-in)</h2><p class="mu">${oc?`Saved: ${oc.lat.toFixed(5)}, ${oc.lng.toFixed(5)} · allowed radius ${oc.radius} m`:'Not set yet. Check-in works from anywhere until you set it.'}</p>
+ <div class="row"><label>Allowed radius (metres)<input id="orad" type="number" min="30" value="${oc?oc.radius:250}" style="width:120px"></label><button class="b" data-a="ol">Set office location to where I am now</button>${oc?'<button class="b s g" data-a="olx">Turn off location check</button>':''}</div>
+ <p class="mu">Open this app on your phone while standing inside the office, then press the button. HR (you) is not blocked by the location check.</p></div>
+ <div class="card"><div class="row"><h2 style="margin:0">People (HR)</h2><button class="b s g" data-a="dlall">⬇ Download all data (Excel)</button></div><p class="mu">Edit details, tab access and the approval line. ✏ changes who a person's leave goes to. Tick "ED/head" for a person whose leave needs no approval.</p>
  <div class="tw"><table><tr><th>Name</th><th>Designation</th><th>Department</th><th>Allowance</th><th>Approval goes to</th><th>Access</th><th>Head</th><th></th></tr>
  ${PU.map(u=>`<tr data-u="${u.id}"><td><input class="nm" value="${esc(u.name)}"><div class="mu">${esc(u.email||'')} · ${esc(u.mobile||'')}</div></td><td><input class="po" value="${esc(u.post||'')}"></td><td><input class="de" value="${esc(u.dept||'')}"></td>
  <td><input class="al" type="number" min="0" style="width:70px" value="${u.allow??21}"></td><td>${(u.reportsTo&&u.reportsTo.length?u.reportsTo.map(e=>esc(nm[e]||e)).join(', '):'HR (default)')} <button class="b s g" data-a="rl" title="Change approval line">✏</button></td>
@@ -203,7 +213,13 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
   if(!hd)notify('applied',ref.id);toast('😊','Your leave request was submitted!');show()}
  if(a==='del'&&confirm('Cancel this request?')){await deleteDoc(doc(db,'leaves',k));show()}
  if(a==='dlmine'){const ls=(await get(query(C('leaves'),where('uid','==',uid)))).sort((a,b)=>a.from<b.from?1:-1);await xl({'My leave':[LH,...ls.map(LR)]},'my-leave-data.xlsx')}
- if(a==='ci'){const id=today()+'_'+uid,s=await getDoc(doc(db,'attendance',id));await setDoc(doc(db,'attendance',id),{uid,name:me.name,dept:me.dept||'',date:today(),status:k,at:s.exists()?s.data().at:Date.now(),approvers:apprs()});show()}
+ if(a==='ci'){const o=await offCfg();let loc={};if(o&&!isOwner){const c=await gp(),dist=Math.round(hav(o.lat,o.lng,c.latitude,c.longitude));
+   if(c.accuracy>200)return alert('Your location is not accurate enough (±'+Math.round(c.accuracy)+' m). Turn on GPS and try again.');
+   if(dist>o.radius)return alert('You are about '+dist+' m from the office. Check-in works only within '+o.radius+' m of the office premises.');loc={lat:c.latitude,lng:c.longitude,acc:Math.round(c.accuracy),dist}}
+  const id=today()+'_'+uid,s=await getDoc(doc(db,'attendance',id));await setDoc(doc(db,'attendance',id),{uid,name:me.name,dept:me.dept||'',date:today(),status:k,at:s.exists()?s.data().at:Date.now(),approvers:apprs(),...loc});show()}
+ if(a==='ol'){const r=+$('#orad').value||250,c=await gp();if(c.accuracy>100&&!confirm('Your location accuracy is only ±'+Math.round(c.accuracy)+' m. Save anyway? Better: use your phone, outdoors near the entrance.'))return;
+  const dl=r/111320,dg=r/(111320*Math.cos(c.latitude*Math.PI/180));await setDoc(doc(db,'config','office'),{lat:c.latitude,lng:c.longitude,radius:r,minLat:c.latitude-dl,maxLat:c.latitude+dl,minLng:c.longitude-dg,maxLng:c.longitude+dg});toast('📍','Office location saved');show()}
+ if(a==='olx'&&confirm('Turn off the location check? Check-in will then work from anywhere.')){await deleteDoc(doc(db,'config','office'));show()}
  if(a==='set'){await updateDoc(doc(db,'leaves',k),{status:b.dataset.v,decidedBy:em});notify('decided',k);show()}
  if(a==='ps'){const d={name:$('#pn').value.trim(),post:$('#pp').value.trim(),dept:$('#pd').value.trim(),doj:$('#pj').value};if(!d.name)return m('Name is required.');d.nameLower=d.name.toLowerCase();if(photoData)d.photo=photoData;await updateDoc(doc(db,'users',uid),d);me={...me,...d};toast('✅','Profile saved');show()}
  if(a==='dlrep')await xl({Report:[['Name','Post','Department','Present','Late','Half day','Leave','Absent','Leave left'],...rep]},'attendance-report-'+month+'.xlsx');
