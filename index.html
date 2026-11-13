@@ -79,7 +79,9 @@ const apprs=()=>(me.reportsTo&&me.reportsTo.length)?me.reportsTo:[OWNER];
 const tm=ms=>ms?new Date(ms).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
 const toast=(e,t)=>{const d=document.createElement('div');d.className='toast';d.innerHTML=`<span>${e}</span>${esc(t)}`;document.body.appendChild(d);setTimeout(()=>d.remove(),3400)};
 const tag=s=>`<span class="tag ${s}">${s}</span>`;
-async function notify(type,id){try{if(!MAIL_URL)return;const token=await auth.currentUser.getIdToken();await fetch(MAIL_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({type,id,token})})}catch(e){}}
+async function notify(type,id){try{if(!MAIL_URL){toast('⚠️','Email service is not connected (MAIL_URL is empty).');return}
+ const token=await auth.currentUser.getIdToken(),r=await fetch(MAIL_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({type,id,token})}),t=(await r.text()).trim();
+ if(t!=='ok')toast('⚠️','Email not sent: '+t.slice(0,120))}catch(e){toast('⚠️','Email request failed: '+e.message)}}
 const xl=async(sheets,name)=>{if(!window.XLSX)await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s)});
  const wb=XLSX.utils.book_new();Object.entries(sheets).forEach(([n,r])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(r),n));XLSX.writeFile(wb,name)};
 const LH=['Name','Email','Post','Department','Type','From','To','Days','Reason','Status','Decided by'],LR=l=>[l.name,l.email,l.post||'',l.dept||'',l.type,l.from,l.to,days(l),l.note||'',l.status,l.decidedBy||''];
