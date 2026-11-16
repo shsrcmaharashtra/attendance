@@ -32,6 +32,21 @@ button.b{background:var(--br);color:var(--bi);border-color:var(--br);font-weight
 .tag{padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;color:#fff}.Pending{background:var(--wa)}.Approved{background:var(--ok)}.Rejected{background:var(--no)}
 .big{font-size:28px;font-weight:700}.mu{color:var(--mu);font-size:13px}.err{color:var(--no)}.login{max-width:380px;margin:40px auto}
 :focus-visible{outline:2px solid #2f6fb0;outline-offset:2px}
+
+header{background:linear-gradient(120deg,#0f5c52,#17806f 55%,#2f6fb0)!important;color:#fff!important;box-shadow:0 2px 14px rgba(0,0,0,.3)}
+.card{border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.14)}h2{font-size:17px}
+button.b:not(.g){background:linear-gradient(135deg,#17806f,#2f6fb0);border:0;color:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+button.b.g{border-radius:10px}
+.hero{position:relative;display:flex;align-items:center;gap:16px;padding:18px 22px;border-radius:18px;margin-bottom:14px;color:#fff;overflow:hidden;background:linear-gradient(120deg,#0f5c52,#17806f 55%,#2f6fb0);box-shadow:0 6px 22px rgba(0,0,0,.25)}
+.hero .bn{position:absolute;right:0;top:0;height:100%;width:45%;object-fit:cover;opacity:.35}.hero>*:not(.bn){position:relative}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--c);border:1px solid var(--ln);border-radius:16px;padding:12px 14px;box-shadow:0 4px 14px rgba(0,0,0,.12)}.tile span{font-size:24px}.tile b{display:block;font-size:28px;line-height:1.1}.tile small{color:var(--mu)}
+.pg{height:10px;border-radius:6px;background:var(--ln);overflow:hidden;margin-top:6px}.pg i{display:block;height:100%;background:linear-gradient(90deg,#17806f,#2f6fb0)}
+.calh,.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.calh{text-align:center;color:var(--mu);font-size:12px;margin-bottom:4px}
+.cd{border:1px solid var(--ln);border-radius:10px;min-height:58px;padding:5px 6px;background:var(--c);text-align:left;font:inherit;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;justify-content:space-between}
+.cd.e{border:0;background:none;cursor:default}.cd span{font-size:18px;text-align:right}.cd.td{outline:2px solid var(--b2)}
+.cd.p{background:rgba(31,138,91,.28)}.cd.l{background:rgba(201,138,11,.32)}.cd.hd{background:rgba(111,168,224,.3)}.cd.lv{background:rgba(47,111,176,.34)}.cd.pn{background:rgba(201,138,11,.12);border-style:dashed}.cd.h{background:rgba(155,89,182,.32)}.cd.a{background:rgba(192,57,43,.26)}.cd.w{background:rgba(120,130,130,.16);color:var(--mu)}
+.lgd{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:13px;color:var(--mu);margin-top:10px}
 </style></head><body>
 <header><div id="who"></div><h1 style="display:flex;align-items:center;gap:8px"><img src="logo.png" alt="" height="34" style="background:#fff;border-radius:6px;padding:2px" onerror="this.remove()">Attendance &amp; Leave</h1><nav id="nav"></nav></header>
 <main id="app"></main>
@@ -78,7 +93,7 @@ const has=t=>isOwner||(me.tabs||[]).includes(t);
 const apprs=()=>(me.reportsTo&&me.reportsTo.length)?me.reportsTo:[OWNER];
 const tm=ms=>ms?new Date(ms).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
 const toast=(e,t)=>{const d=document.createElement('div');d.className='toast';d.innerHTML=`<span>${e}</span>${esc(t)}`;document.body.appendChild(d);setTimeout(()=>d.remove(),3400)};
-const tag=s=>`<span class="tag ${s}">${s}</span>`;
+const EMJ={Pending:'⏳',Approved:'✅',Rejected:'❌'},tag=s=>`<span class="tag ${s}">${EMJ[s]||''} ${s}</span>`;
 async function notify(type,id){try{if(!MAIL_URL){toast('⚠️','Email service is not connected (MAIL_URL is empty).');return}
  const token=await auth.currentUser.getIdToken(),r=await fetch(MAIL_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({type,id,token})}),t=(await r.text()).trim();
  if(t!=='ok')toast('⚠️','Email not sent: '+t.slice(0,120))}catch(e){toast('⚠️','Email request failed: '+e.message)}}
@@ -110,36 +125,38 @@ onAuthStateChanged(auth,async u=>{if(reg)return;if(!u){me=null;return login()}
  tab='mine';show()});
 
 const pw=(id,ac)=>`<div class="pw"><input id="${id}" type="password" autocomplete="${ac}"><button type="button" class="eye" data-a="eye" aria-label="Show or hide password">👁</button></div>`;
-function login(r){$('#nav').innerHTML='';$('#who').innerHTML='';$('#app').innerHTML=`<div class="card login"><img class="lg" src="logo.png" alt="SHSRC Maharashtra" style="display:block;margin:0 auto 14px;height:110px;background:#fff;border-radius:12px;padding:6px" onerror="this.remove()"><h2>${r?'Create account':'Sign in'}</h2>
+function login(r){$('#nav').innerHTML='';$('#who').innerHTML='';$('#app').innerHTML=`<div class="card login"><img class="lg" src="logo.png" alt="SHSRC Maharashtra" style="display:block;margin:0 auto 14px;height:110px;background:#fff;border-radius:12px;padding:6px" onerror="this.remove()"><p style="text-align:center;margin:0 0 10px"><b>Welcome to SHSRC 💚</b><br><span class="mu">Attendance &amp; Leave Portal · Maharashtra</span></p><h2>${r?'🆕 Create account':'🔐 Sign in'}</h2>
  <div class="row" style="flex-direction:column;align-items:stretch">
  ${r?'<label>Full name *<input id="n"></label><label>Designation (optional)<input id="po" placeholder="e.g. Consultant"></label><label>Department (optional)<input id="d" placeholder="e.g. Finance"></label><label>Mobile number *<input id="mo" type="tel" inputmode="numeric" maxlength="10"></label><label>Email *<input id="e" type="email" autocomplete="username"></label>':'<label>Email or mobile number<input id="e" autocomplete="username"></label>'}
  <label>Password${r?' *':''}${pw('p',r?'new-password':'current-password')}</label>
  <button class="b" data-a="${r?'reg':'in'}">${r?'Create account':'Sign in'}</button><button class="b g" data-a="${r?'tl':'tr'}">${r?'I already have an account':'Create new account'}</button>
  ${r?'':'<button class="b g" data-a="rs">Forgot password</button>'}</div><p class="err" id="m">${esc(msg)}</p></div>`;msg=''}
 
-function show(){const t={mine:'My leave',check:'Check in'};if(has('team'))t.team='Team';if(has('report'))t.report='Report';t.hol='Holidays';if(isOwner)t.people='People';
+function show(){const t={mine:'🌴 My leave',cal:'📅 Calendar',check:'📍 Check in'};if(has('team'))t.team='👥 Team';if(has('report'))t.report='📊 Report';t.hol='🎉 Holidays';if(isOwner)t.people='⚙️ People';
  $('#who').innerHTML=`<button class="chip" data-a="tab" data-k="prof">${avatar(me)}<span><b>${esc(me.name)}</b><br><small>${esc([me.post,me.dept].filter(Boolean).join(' · ')||'Add designation')}${me.doj?' · DOJ '+esc(me.doj):''}</small></span></button>`;
  $('#nav').innerHTML=Object.entries(t).map(([k,v])=>`<button class="${k===tab?'on':''}" data-a="tab" data-k="${k}">${v}</button>`).join('')+`<button data-a="mo">Motion: ${$('#bg')&&$('#bg').classList.contains('nomo')?'Off':'On'}</button><button data-a="out">Sign out</button>`;
- $('#app').innerHTML='<p class="mu">Loading…</p>';({mine,check,team,report,hol,people,prof})[tab]().then(h=>$('#app').innerHTML=h).catch(e=>$('#app').innerHTML=`<div class="card err">Error: ${esc(e.message)}</div>`)}
+ $('#app').innerHTML='<p class="mu">Loading…</p>';({mine,cal,check,team,report,hol,people,prof})[tab]().then(h=>$('#app').innerHTML=h).catch(e=>$('#app').innerHTML=`<div class="card err">Error: ${esc(e.message)}</div>`)}
 
 async function mine(){
  const ls=(await get(query(C('leaves'),where('uid','==',uid)))).sort((a,b)=>a.from<b.from?1:-1),u=used(ls),al=me.allow??21;
- return `<div class="card"><h2>Hello, ${esc(me.name)}</h2><span class="big">${al-u}</span> <span class="mu">days of leave left this year (${u} used of ${al})</span></div>
- <div class="card"><h2>Request leave</h2><div class="row"><label>Type<select id="t">${TYPES.map(t=>`<option>${t}</option>`).join('')}</select></label>
+ return `<div class="hero"><img class="bn" src="banner.jpg" alt="" onerror="this.remove()"><div style="font-size:48px">🏥</div><div><div style="font-size:21px;font-weight:700">👋 Hello, ${esc(me.name)}!</div><div style="opacity:.92">${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · Have a great day 💚</div></div></div>
+ <div class="tiles"><div class="tile"><span>🌴</span><b>${al-u}</b><small>Leave days left</small></div><div class="tile"><span>📆</span><b>${u}</b><small>Used this year (of ${al})</small></div><div class="tile"><span>⏳</span><b>${ls.filter(l=>l.status==='Pending').length}</b><small>Waiting approval</small></div><div class="tile"><span>✅</span><b>${ls.filter(l=>l.status==='Approved').length}</b><small>Approved requests</small></div></div>
+ <div class="card" style="padding:10px 14px"><small class="mu">Leave used: ${Math.min(100,Math.round(u/(al||1)*100))}% of yearly allowance</small><div class="pg"><i style="width:${Math.min(100,Math.round(u/(al||1)*100))}%"></i></div></div>
+ <div class="card"><h2>📝 Request leave</h2><div class="row"><label>Type<select id="t">${TYPES.map(t=>`<option>${t}</option>`).join('')}</select></label>
  <label>From<input type="date" id="f" value="${today()}"></label><label>To<input type="date" id="o" value="${today()}"></label>
  <label>Reason<input id="r" placeholder="Optional"></label><label style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="h">Half day</label>
  <button class="b" data-a="req">Submit</button></div><p class="err" id="m"></p></div>
- <div class="card"><div class="row"><h2 style="margin:0">My requests</h2><button class="b s g" data-a="dlmine">⬇ Download my leave data</button></div>${ls.length?`<div class="tw"><table><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr>${ls.map(l=>`<tr><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${tag(l.status)}</td><td>${l.status==='Pending'?`<button class="b s g" data-a="del" data-k="${l.id}">Cancel</button>`:''}</td></tr>`).join('')}</table></div>`:'<p class="mu">No requests yet.</p>'}</div>`}
+ <div class="card"><div class="row"><h2 style="margin:0">📋 My requests</h2><button class="b s g" data-a="dlmine">⬇ Download my leave data</button></div>${ls.length?`<div class="tw"><table><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr>${ls.map(l=>`<tr><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${tag(l.status)}</td><td>${l.status==='Pending'?`<button class="b s g" data-a="del" data-k="${l.id}">Cancel</button>`:''}</td></tr>`).join('')}</table></div>`:'<p class="mu">No requests yet.</p>'}</div>`}
 
 async function check(){const s=await getDoc(doc(db,'attendance',today()+'_'+uid)),d=s.exists()?s.data():null,o=await offCfg();let loc=null,note='';
  if(o&&!isOwner){try{const c=await gp();loc={acc:Math.round(c.accuracy),dist:Math.round(hav(o.lat,o.lng,c.latitude,c.longitude))}}catch(e){note=e.message}}
  const inside=!o||isOwner||(loc&&loc.dist<=o.radius&&loc.acc<=200);
  if(!inside&&loc)note=loc.acc>200?`Your location is not accurate enough (±${loc.acc} m). Go near a window or outside, turn on GPS and try again.`:`You are about ${loc.dist} m from the office. Check-in works only within ${o.radius} m of the office premises.`;
  return `<div class="card"><h2>Today, ${today()}</h2><p>${d?`You are marked <b>${d.status}</b> at <b>${tm(d.at)}</b>.`:'You have not checked in yet.'}</p>
- ${inside?`<div class="row">${['Present','Late','Half day'].map(k=>`<button class="b ${d&&d.status===k?'':'g'}" data-a="ci" data-k="${k}">${k}</button>`).join('')}</div>${o&&!isOwner?`<p class="mu">📍 You are inside the office area (about ${loc.dist} m from the centre).</p>`:''}`:`<p class="err">${esc(note)}</p><button class="b g" data-a="tab" data-k="check">Check my location again</button>`}
+ ${inside?`<div class="row">${['Present','Late','Half day'].map(k=>`<button class="b ${d&&d.status===k?'':'g'}" data-a="ci" data-k="${k}">${{Present:'✅ Present',Late:'⏰ Late','Half day':'🌗 Half day'}[k]}</button>`).join('')}</div>${o&&!isOwner?`<p class="mu">📍 You are inside the office area (about ${loc.dist} m from the centre).</p>`:''}`:`<p class="err">${esc(note)}</p><button class="b g" data-a="tab" data-k="check">Check my location again</button>`}
  ${isOwner&&o?'<p class="mu">HR: the office-location check is not applied to you.</p>':''}${!o?'<p class="mu">Office location is not set yet, so check-in works from anywhere.</p>':''}</div>`}
 
-async function prof(){photoData=null;return `<div class="card"><h2>My profile</h2><div class="row"><div id="phv" style="width:80px;height:80px">${me.photo?`<img src="${me.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`:avatar(me).replace('class="av"','class="av" style="width:80px;height:80px;font-size:32px"')}</div>
+async function prof(){photoData=null;return `<div class="card"><h2>🙋 My profile</h2><div class="row"><div id="phv" style="width:80px;height:80px">${me.photo?`<img src="${me.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`:avatar(me).replace('class="av"','class="av" style="width:80px;height:80px;font-size:32px"')}</div>
  <label>Profile photo<input type="file" id="ph" accept="image/*"></label></div><div class="row">
  <label>Full name<input id="pn" value="${esc(me.name)}"></label><label>Designation<input id="pp" value="${esc(me.post||'')}"></label><label>Department<input id="pd" value="${esc(me.dept||'')}"></label>
  <label>Date of joining<input type="date" id="pj" value="${esc(me.doj||'')}"></label></div><p class="mu">Email: ${esc(me.email||em)} · Mobile: ${esc(me.mobile||'')}</p>
@@ -152,16 +169,37 @@ async function team(){
  const pend=ls.filter(l=>l.status==='Pending'),hist=ls.filter(l=>l.status!=='Pending').sort((a,b)=>a.from<b.from?1:-1).slice(0,100);
  const st=u=>{const a=at[u.id];if(a)return a.status;if(ls.some(l=>l.uid===u.id&&l.status==='Approved'&&l.from<=t&&t<=l.to))return'On leave';return off(t)?(HOL[t]||'Off day'):'Not in yet'};
  const row=l=>`<td>${esc(l.name)}</td><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${esc(l.note||'')}</td>`;
- return `<div class="card"><h2>Waiting for approval (${pend.length})</h2>${pend.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th></th></tr>${pend.map(l=>`<tr>${row(l)}<td>${canDecide(l)?`<button class="b s" data-a="set" data-k="${l.id}" data-v="Approved">Approve</button> <button class="b s g" data-a="set" data-k="${l.id}" data-v="Rejected">Reject</button>`:'<span class="mu">View only</span>'}</td></tr>`).join('')}</table></div>`:'<p class="mu">Nothing waiting.</p>'}</div>
- <div class="card"><h2>Today</h2><div class="tw"><table><tr><th>Name</th><th>Department</th><th>Status</th><th>Time</th></tr>${us.sort((a,b)=>a.name<b.name?-1:1).map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.dept||'')}</td><td>${st(u)}</td><td>${tm((at[u.id]||{}).at)}</td></tr>`).join('')}</table></div></div>
- <div class="card"><h2>Leave history</h2>${hist.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th>Status</th></tr>${hist.map(l=>`<tr>${row(l)}<td>${tag(l.status)}</td></tr>`).join('')}</table></div>`:'<p class="mu">No history yet.</p>'}</div>`}
+ return `<div class="card"><h2>⏳ Waiting for approval (${pend.length})</h2>${pend.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th></th></tr>${pend.map(l=>`<tr>${row(l)}<td>${canDecide(l)?`<button class="b s" data-a="set" data-k="${l.id}" data-v="Approved">Approve</button> <button class="b s g" data-a="set" data-k="${l.id}" data-v="Rejected">Reject</button>`:'<span class="mu">View only</span>'}</td></tr>`).join('')}</table></div>`:'<p class="mu">Nothing waiting.</p>'}</div>
+ <div class="card"><h2>📍 Today</h2><div class="tw"><table><tr><th>Name</th><th>Department</th><th>Status</th><th>Time</th></tr>${us.sort((a,b)=>a.name<b.name?-1:1).map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.dept||'')}</td><td>${st(u)}</td><td>${tm((at[u.id]||{}).at)}</td></tr>`).join('')}</table></div></div>
+ <div class="card"><h2>🗂 Leave history</h2>${hist.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th>Status</th></tr>${hist.map(l=>`<tr>${row(l)}<td>${tag(l.status)}</td></tr>`).join('')}</table></div>`:'<p class="mu">No history yet.</p>'}</div>`}
 
 async function hol(){await loadHol();const ed=has('holidays'),e=Object.entries(HOL).sort();
- return `<div class="card"><h2>Holidays</h2>${ed?`<div class="row"><label>Date<input type="date" id="hd"></label><label>Holiday name<input id="hn"></label><button class="b" data-a="ah">Add holiday</button></div>
+ return `<div class="card"><h2>🎉 Holidays</h2>${ed?`<div class="row"><label>Date<input type="date" id="hd"></label><label>Holiday name<input id="hn"></label><button class="b" data-a="ah">Add holiday</button></div>
  <div class="row"><label>Upload Excel (column A = date, column B = holiday name)<input type="file" id="hx" accept=".xlsx,.xls,.csv"></label><button class="b s g" data-a="ht">Download template</button>${HDB?'':'<button class="b s g" data-a="hs">Save current list to database</button>'}</div>`:''}
  <div class="tw"><table><tr><th>Date</th><th>Day</th><th>Holiday</th>${ed?'<th></th>':''}</tr>${e.map(([d,n])=>`<tr><td>${d}</td><td>${new Date(d+'T00:00').toLocaleDateString('en-IN',{weekday:'long'})}</td><td>${esc(n)}</td>${ed?`<td><button class="b s g" data-a="rh" data-k="${d}">Remove</button></td>`:''}</tr>`).join('')||'<tr><td colspan="4" class="mu">No holidays.</td></tr>'}</table></div>
  <p class="mu">Saturdays and Sundays are weekly offs. Holidays are not counted as leave days.</p></div>`}
 
+let calM=today().slice(0,7),CD={ls:[],A:{},start:''};
+const dayInfo=ds=>{const {ls,A,start}=CD,t=today(),a=A[ds],l=ls.find(x=>x.from<=ds&&ds<=x.to&&x.status!=='Rejected'),h=HOL[ds],wk=WK.includes(new Date(ds+'T00:00').getDay());
+ if(h)return{c:'h',e:'🎉',t:'Holiday: '+h};
+ if(a)return a.status==='Late'?{c:'l',e:'⏰',t:'Late · checked in '+tm(a.at)}:a.status==='Half day'?{c:'hd',e:'🌗',t:'Half day · checked in '+tm(a.at)}:{c:'p',e:'✅',t:'Present · checked in '+tm(a.at)};
+ if(wk)return{c:'w',e:'',t:'Weekly off'};
+ if(l)return l.status==='Approved'?{c:'lv',e:'🌴',t:l.type+(l.half?' (half day)':'')+' · approved'+(l.note?' · '+l.note:'')}:{c:'pn',e:'⏳',t:l.type+' · waiting for approval'};
+ if(ds<t&&ds>=start)return{c:'a',e:'🔴',t:'Absent (no check-in and no approved leave)'};
+ return{c:'f',e:'',t:ds<t?'':'Working day'}};
+async function cal(){
+ const [ls,at]=await Promise.all([get(query(C('leaves'),where('uid','==',uid))),get(query(C('attendance'),where('uid','==',uid)))]);
+ const A={};at.forEach(a=>A[a.date]=a);const ds0=[...at.map(a=>a.date),...ls.map(l=>l.from)].sort();CD={ls,A,start:me.doj||ds0[0]||today()};
+ const [y,m]=calM.split('-').map(Number),n=new Date(y,m,0).getDate(),t=today(),k={p:0,lv:0,a:0,h:0};let cells='';
+ for(let i=0;i<new Date(y,m-1,1).getDay();i++)cells+='<div class="cd e"></div>';
+ for(let d=1;d<=n;d++){const ds=calM+'-'+String(d).padStart(2,'0'),x=dayInfo(ds);if('p l hd'.split(' ').includes(x.c))k.p++;else if(x.c==='lv')k.lv++;else if(x.c==='a')k.a++;else if(x.c==='h')k.h++;
+  cells+=`<button class="cd ${x.c}${ds===t?' td':''}" data-a="cd" data-k="${ds}"><b>${d}</b><span>${x.e}</span></button>`}
+ return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">📅 ${new Date(y,m-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</h2>
+ <div><button class="b s g" data-a="cm" data-k="-1">◀ Prev</button> <button class="b s g" data-a="cm" data-k="0">Today</button> <button class="b s g" data-a="cm" data-k="1">Next ▶</button></div></div>
+ <div class="tiles" style="margin:12px 0"><div class="tile"><span>✅</span><b>${k.p}</b><small>Days present</small></div><div class="tile"><span>🌴</span><b>${k.lv}</b><small>Leave days</small></div><div class="tile"><span>🔴</span><b>${k.a}</b><small>Absent days</small></div><div class="tile"><span>🎉</span><b>${k.h}</b><small>Holidays</small></div></div>
+ <div class="calh">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div>${x}</div>`).join('')}</div><div class="cal">${cells}</div>
+ <div class="lgd"><span>✅ Present</span><span>⏰ Late</span><span>🌗 Half day</span><span>🌴 Approved leave</span><span>⏳ Leave pending</span><span>🎉 Holiday</span><span>🔴 Absent</span><span>⬜ Weekly off</span></div>
+ <p id="cdet" class="mu" style="margin-top:10px">👆 Tap any day to see the details. Past and future leaves, holidays and attendance all show here.</p></div>`}
 let rep=[];
 async function report(){
  const [us,ls,at]=await Promise.all([get(query(C('users'))),get(query(C('leaves'))),get(query(C('attendance'),where('date','>=',month+'-01'),where('date','<=',month+'-31')))]);
@@ -170,7 +208,7 @@ async function report(){
   for(let i=1;i<=n;i++){const d=month+'-'+String(i).padStart(2,'0');if(d>t||off(d))continue;const a=at.find(x=>x.uid===u.id&&x.date===d);if(a){c[a.status]++;continue}
    const l=ls.find(x=>x.uid===u.id&&x.status==='Approved'&&x.from<=d&&d<=x.to);if(l)c.Leave+=l.half?.5:1;else c.Absent++}
   return [u.name,u.post||'',u.dept||'',c.Present,c.Late,c['Half day'],c.Leave,c.Absent,(u.allow??21)-used(ls.filter(l=>l.uid===u.id))]});
- return `<div class="card"><h2>Monthly report</h2><div class="row"><label>Month<input type="month" id="rm" value="${month}"></label><button class="b" data-a="dlrep">Download Excel</button></div>
+ return `<div class="card"><h2>📊 Monthly report</h2><div class="row"><label>Month<input type="month" id="rm" value="${month}"></label><button class="b" data-a="dlrep">Download Excel</button></div>
  <div class="tw"><table><tr><th>Name</th><th>Post</th><th>Department</th><th>Present</th><th>Late</th><th>Half day</th><th>Leave</th><th>Absent</th><th>Leave left</th></tr>${rep.map(r=>`<tr>${r.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div>
  <p class="mu">Weekends and holidays are not counted. A working day with no check-in and no approved leave counts as Absent.</p></div>`}
 
@@ -240,5 +278,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  if(a==='rh'&&confirm('Remove this holiday?')){await seed();await deleteDoc(doc(db,'holidays',k));toast('✅','Holiday removed');show()}
  if(a==='hs'){await seed();toast('✅','Saved to database');show()}
  if(a==='ht')await xl({Holidays:[['Date (YYYY-MM-DD)','Holiday name'],['2027-01-26','Republic Day'],['2027-08-15','Independence Day']]},'holiday-template.xlsx');
+
+ if(a==='cm'){const [y,mm]=calM.split('-').map(Number);calM=+k===0?today().slice(0,7):fmt(new Date(y,mm-1+(+k),1)).slice(0,7);return show()}
+ if(a==='cd'){const x=dayInfo(k);$('#cdet').innerHTML='<b>'+new Date(k+'T00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</b> — '+x.e+' '+esc(x.t||'No record')}
  }catch(x){reg=false;m(x.code==='auth/invalid-credential'?'Wrong email or password.':x.code==='auth/email-already-in-use'?'This email already has an account.':x.message)}});
 </script></body></html>
