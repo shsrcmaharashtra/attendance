@@ -47,8 +47,14 @@ button.b.g{border-radius:10px}
 .cd.e{border:0;background:none;cursor:default}.cd span{font-size:18px;text-align:right}.cd.td{outline:2px solid var(--b2)}
 .cd.p{background:rgba(31,138,91,.28)}.cd.l{background:rgba(201,138,11,.32)}.cd.hd{background:rgba(111,168,224,.3)}.cd.lv{background:rgba(47,111,176,.34)}.cd.pn{background:rgba(201,138,11,.12);border-style:dashed}.cd.h{background:rgba(155,89,182,.32)}.cd.a{background:rgba(192,57,43,.26)}.cd.w{background:rgba(120,130,130,.16);color:var(--mu)}
 .lgd{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:13px;color:var(--mu);margin-top:10px}
+.chip .av,.chip img{width:56px!important;height:56px!important;font-size:24px}.chip{padding:5px 18px 5px 5px}
+
+.tick{overflow:hidden;white-space:nowrap;background:#0f3f45;color:#fff;font-size:13px;padding:6px 0}.tick span{display:inline-block;padding-left:100%;animation:mq 32s linear infinite}@keyframes mq{to{transform:translateX(-100%)}}
+.fl{position:absolute;bottom:-34px;font-size:22px;opacity:.65;animation:up 7s linear infinite;pointer-events:none}@keyframes up{to{transform:translateY(-170px) rotate(25deg);opacity:0}}
+.ecg{width:100%;height:34px}.ecg path{fill:none;stroke:#17806f;stroke-width:2.2;stroke-dasharray:300;stroke-dashoffset:300;animation:ek 2.6s linear infinite}.hero .ecg path{stroke:#fff}@keyframes ek{to{stroke-dashoffset:-300}}
+.chart{height:260px;position:relative}.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
 </style></head><body>
-<header><div id="who"></div><h1 style="display:flex;align-items:center;gap:8px"><img src="logo.png" alt="" height="34" style="background:#fff;border-radius:6px;padding:2px" onerror="this.remove()">Attendance &amp; Leave</h1><nav id="nav"></nav></header>
+<header><div id="who"></div><h1 style="display:flex;align-items:center;gap:8px"><img src="logo.png" alt="" height="34" style="background:#fff;border-radius:6px;padding:2px" onerror="this.remove()">Attendance &amp; Leave</h1><nav id="nav"></nav></header><div id="tick" class="tick"></div>
 <main id="app"></main>
 <script type="module">
 // ======= 1. PASTE YOUR FIREBASE CONFIG HERE (Firebase console > Project settings > Your apps) =======
@@ -66,7 +72,7 @@ const MAIL_URL="https://script.google.com/macros/s/AKfycby3VRdA8JPiV-ezX9-3uGrlO
 const WK=[0,6]; // weekend days: 0=Sun ... 6=Sat. Example Fri+Sat: [5,6]
 const HOL={'2026-05-01':'Maharashtra Din & Buddha Purnima','2026-05-28':'Bakri Id','2026-06-26':'Moharum','2026-08-15':'Independence Day / Parsi New Year','2026-08-26':'Id-e-Milad','2026-09-14':'Ganesh Chaturthi','2026-10-02':'Mahatma Gandhi Jayanti','2026-10-20':'Dasara','2026-11-10':'Diwali - Bali Pratipada','2026-11-11':'Bhaubeej','2026-12-25':'Christmas'};
 const off=d=>WK.includes(new Date(d+'T00:00').getDay())||!!HOL[d];
-const TYPES=['Annual leave','Sick leave','Casual leave','Unpaid leave','Other'];
+const TYPES=['Leave','Maternity leave','Abortion leave','Paternity leave','Extraordinary leave (Unpaid)','Leave for serious illness of employee (Paid)','Compensatory leave','General condition of admissibility of leaves'],DEDUCT=['Leave','Annual leave','Casual leave','Sick leave'];
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail,sendEmailVerification} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,addDoc,updateDoc,deleteDoc,collection,query,where,getDocs,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -100,11 +106,14 @@ async function notify(type,id){try{if(!MAIL_URL){toast('⚠️','Email service i
 const xl=async(sheets,name)=>{if(!window.XLSX)await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s)});
  const wb=XLSX.utils.book_new();Object.entries(sheets).forEach(([n,r])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(r),n));XLSX.writeFile(wb,name)};
 const LH=['Name','Email','Post','Department','Type','From','To','Days','Reason','Status','Decided by'],LR=l=>[l.name,l.email,l.post||'',l.dept||'',l.type,l.from,l.to,days(l),l.note||'',l.status,l.decidedBy||''];
-const used=ls=>ls.filter(l=>l.status==='Approved'&&l.type!=='Unpaid leave'&&l.from.startsWith(String(new Date().getFullYear()))).reduce((a,l)=>a+days(l),0);
+const used=ls=>ls.filter(l=>l.status==='Approved'&&DEDUCT.includes(l.type)&&l.from.startsWith(String(new Date().getFullYear()))).reduce((a,l)=>a+days(l),0);
 const gp=()=>new Promise((res,rej)=>{if(!navigator.geolocation)return rej({message:'This device does not support location.'});navigator.geolocation.getCurrentPosition(p=>res(p.coords),e=>rej({message:e.code===1?'Location permission was denied. Allow location for this site in your browser settings and try again.':'Could not get your location. Turn on GPS/location and try again.'}),{enableHighAccuracy:true,timeout:20000,maximumAge:0})});
 const hav=(a,b,c,d)=>{const R=6371000,r=x=>x*Math.PI/180,x=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
 const offCfg=async()=>{try{const s=await getDoc(doc(db,'config','office'));return s.exists()?s.data():null}catch(e){return null}};
-let HDB=false;
+let HDB=false,NOTICE='',POST=null;
+const hrs=(a,o)=>{if(!a||!o)return'';const m=Math.round((o-a)/60000);return Math.floor(m/60)+'h '+m%60+'m'};
+const ECG='<svg class="ecg" viewBox="0 0 200 40"><path d="M0 22h58l8-15 10 30 10-36 8 21h106"/></svg>';
+async function loadNotice(){try{const n=await getDoc(doc(db,'config','notice'));NOTICE=n.exists()?n.data().text||'':''}catch(e){}}
 async function loadHol(){try{const h=await get(query(C('holidays')));HDB=h.length>0;if(HDB){Object.keys(HOL).forEach(k=>delete HOL[k]);h.forEach(x=>HOL[x.id]=x.name)}}catch(e){}}
 async function seed(){if(HDB)return;const w=writeBatch(db);Object.entries(HOL).forEach(([d,n])=>w.set(doc(db,'holidays',d),{name:n}));await w.commit();HDB=true}
 const pd=v=>{if(typeof v==='number'){const d=new Date(Math.round((v-25569)*864e5));return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')}
@@ -120,26 +129,27 @@ const avatar=u=>u.photo?`<img src="${u.photo}" alt="">`:`<span class="av">${esc(
 
 onAuthStateChanged(auth,async u=>{if(reg)return;if(!u){me=null;return login()}
  uid=u.uid;em=u.email.toLowerCase();const s=await getDoc(doc(db,'users',uid));if(!s.exists()){msg='Profile not found. Ask HR.';await signOut(auth);return}
- me=s.data();isOwner=em===OWNER&&u.emailVerified;await loadHol();
+ me=s.data();isOwner=em===OWNER&&u.emailVerified;await loadHol();await loadNotice();
  if(em===OWNER&&!u.emailVerified){sendEmailVerification(u).catch(()=>{});alert('A verification email was sent to '+u.email+'. Click the link in it, then sign in again to get HR powers.')}
  tab='mine';show()});
 
 const pw=(id,ac)=>`<div class="pw"><input id="${id}" type="password" autocomplete="${ac}"><button type="button" class="eye" data-a="eye" aria-label="Show or hide password">👁</button></div>`;
-function login(r){$('#nav').innerHTML='';$('#who').innerHTML='';$('#app').innerHTML=`<div class="card login"><img class="lg" src="logo.png" alt="SHSRC Maharashtra" style="display:block;margin:0 auto 14px;height:110px;background:#fff;border-radius:12px;padding:6px" onerror="this.remove()"><p style="text-align:center;margin:0 0 10px"><b>Welcome to SHSRC 💚</b><br><span class="mu">Attendance &amp; Leave Portal · Maharashtra</span></p><h2>${r?'🆕 Create account':'🔐 Sign in'}</h2>
+function login(r){$('#nav').innerHTML='';$('#who').innerHTML='';$('#tick').innerHTML='';$('#app').innerHTML=`<div class="card login"><img class="lg" src="logo.png" alt="SHSRC Maharashtra" style="display:block;margin:0 auto 14px;height:110px;background:#fff;border-radius:12px;padding:6px" onerror="this.remove()"><p style="text-align:center;margin:0 0 10px"><b>Welcome to SHSRC 💚</b><br><span class="mu">Attendance &amp; Leave Portal · Maharashtra</span>${ECG}</p><h2>${r?'🆕 Create account':'🔐 Sign in'}</h2>
  <div class="row" style="flex-direction:column;align-items:stretch">
  ${r?'<label>Full name *<input id="n"></label><label>Designation (optional)<input id="po" placeholder="e.g. Consultant"></label><label>Department (optional)<input id="d" placeholder="e.g. Finance"></label><label>Mobile number *<input id="mo" type="tel" inputmode="numeric" maxlength="10"></label><label>Email *<input id="e" type="email" autocomplete="username"></label>':'<label>Email or mobile number<input id="e" autocomplete="username"></label>'}
  <label>Password${r?' *':''}${pw('p',r?'new-password':'current-password')}</label>
  <button class="b" data-a="${r?'reg':'in'}">${r?'Create account':'Sign in'}</button><button class="b g" data-a="${r?'tl':'tr'}">${r?'I already have an account':'Create new account'}</button>
  ${r?'':'<button class="b g" data-a="rs">Forgot password</button>'}</div><p class="err" id="m">${esc(msg)}</p></div>`;msg=''}
 
-function show(){const t={mine:'🌴 My leave',cal:'📅 Calendar',check:'📍 Check in'};if(has('team'))t.team='👥 Team';if(has('report'))t.report='📊 Report';t.hol='🎉 Holidays';if(isOwner)t.people='⚙️ People';
+function show(){const t={mine:'🌴 My leave',cal:'📅 Calendar',check:'📍 Check in'};if(has('team'))t.team='👥 Team';if(has('report')){t.report='📊 Report';t.ana='📈 Analytics'}t.hol='🎉 Holidays';if(isOwner)t.people='⚙️ People';
  $('#who').innerHTML=`<button class="chip" data-a="tab" data-k="prof">${avatar(me)}<span><b>${esc(me.name)}</b><br><small>${esc([me.post,me.dept].filter(Boolean).join(' · ')||'Add designation')}${me.doj?' · DOJ '+esc(me.doj):''}</small></span></button>`;
  $('#nav').innerHTML=Object.entries(t).map(([k,v])=>`<button class="${k===tab?'on':''}" data-a="tab" data-k="${k}">${v}</button>`).join('')+`<button data-a="mo">Motion: ${$('#bg')&&$('#bg').classList.contains('nomo')?'Off':'On'}</button><button data-a="out">Sign out</button>`;
- $('#app').innerHTML='<p class="mu">Loading…</p>';({mine,cal,check,team,report,hol,people,prof})[tab]().then(h=>$('#app').innerHTML=h).catch(e=>$('#app').innerHTML=`<div class="card err">Error: ${esc(e.message)}</div>`)}
+ {const nh=Object.entries(HOL).filter(([d])=>d>=today()).sort()[0],tx='📢 '+(NOTICE||'Welcome to the SHSRC Attendance & Leave Portal 💚')+(nh?'   •   🎉 Next holiday: '+nh[1]+' on '+nh[0]:'');$('#tick').innerHTML='<span>'+esc(tx)+'</span>'}
+ $('#app').innerHTML='<p class="mu">Loading…</p>';({mine,cal,ana,check,team,report,hol,people,prof})[tab]().then(h=>{$('#app').innerHTML=h;if(POST){const f=POST;POST=null;f()}}).catch(e=>$('#app').innerHTML=`<div class="card err">Error: ${esc(e.message)}</div>`)}
 
 async function mine(){
  const ls=(await get(query(C('leaves'),where('uid','==',uid)))).sort((a,b)=>a.from<b.from?1:-1),u=used(ls),al=me.allow??21;
- return `<div class="hero"><img class="bn" src="banner.jpg" alt="" onerror="this.remove()"><div style="font-size:48px">🏥</div><div><div style="font-size:21px;font-weight:700">👋 Hello, ${esc(me.name)}!</div><div style="opacity:.92">${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · Have a great day 💚</div></div></div>
+ return `<div class="hero"><video class="bn" src="hero.mp4" autoplay muted loop playsinline onerror="this.remove()"></video><img class="bn" src="banner.jpg" alt="" onerror="this.remove()"><span class="fl" style="left:55%">🩺</span><span class="fl" style="left:68%;animation-delay:2s">💊</span><span class="fl" style="left:80%;animation-delay:4s">❤️</span><span class="fl" style="left:90%;animation-delay:1s">🏥</span>${me.photo?`<img src="${me.photo}" alt="" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #fff">`:'<div style="font-size:48px">🏥</div>'}<div><div style="font-size:21px;font-weight:700">👋 Hello, ${esc(me.name)}!</div><div style="opacity:.92">${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · Have a great day 💚</div><div style="width:220px;max-width:60vw">${ECG}</div></div></div>
  <div class="tiles"><div class="tile"><span>🌴</span><b>${al-u}</b><small>Leave days left</small></div><div class="tile"><span>📆</span><b>${u}</b><small>Used this year (of ${al})</small></div><div class="tile"><span>⏳</span><b>${ls.filter(l=>l.status==='Pending').length}</b><small>Waiting approval</small></div><div class="tile"><span>✅</span><b>${ls.filter(l=>l.status==='Approved').length}</b><small>Approved requests</small></div></div>
  <div class="card" style="padding:10px 14px"><small class="mu">Leave used: ${Math.min(100,Math.round(u/(al||1)*100))}% of yearly allowance</small><div class="pg"><i style="width:${Math.min(100,Math.round(u/(al||1)*100))}%"></i></div></div>
  <div class="card"><h2>📝 Request leave</h2><div class="row"><label>Type<select id="t">${TYPES.map(t=>`<option>${t}</option>`).join('')}</select></label>
@@ -152,11 +162,11 @@ async function check(){const s=await getDoc(doc(db,'attendance',today()+'_'+uid)
  if(o&&!isOwner){try{const c=await gp();loc={acc:Math.round(c.accuracy),dist:Math.round(hav(o.lat,o.lng,c.latitude,c.longitude))}}catch(e){note=e.message}}
  const inside=!o||isOwner||(loc&&loc.dist<=o.radius&&loc.acc<=200);
  if(!inside&&loc)note=loc.acc>200?`Your location is not accurate enough (±${loc.acc} m). Go near a window or outside, turn on GPS and try again.`:`You are about ${loc.dist} m from the office. Check-in works only within ${o.radius} m of the office premises.`;
- return `<div class="card"><h2>Today, ${today()}</h2><p>${d?`You are marked <b>${d.status}</b> at <b>${tm(d.at)}</b>.`:'You have not checked in yet.'}</p>
+ return `<div class="card"><h2>Today, ${today()}</h2><p>${d?`✅ <b>${d.status}</b> · Checked in at <b>${tm(d.at)}</b>${d.out?` · 🚪 Checked out at <b>${tm(d.out)}</b> · ⏱ Worked <b>${hrs(d.at,d.out)}</b>`:''}`:'You have not checked in yet.'}</p>${d&&!d.out&&inside?`<p><button class="b" data-a="co">🚪 Check out</button></p>`:''}
  ${inside?`<div class="row">${['Present','Late','Half day'].map(k=>`<button class="b ${d&&d.status===k?'':'g'}" data-a="ci" data-k="${k}">${{Present:'✅ Present',Late:'⏰ Late','Half day':'🌗 Half day'}[k]}</button>`).join('')}</div>${o&&!isOwner?`<p class="mu">📍 You are inside the office area (about ${loc.dist} m from the centre).</p>`:''}`:`<p class="err">${esc(note)}</p><button class="b g" data-a="tab" data-k="check">Check my location again</button>`}
  ${isOwner&&o?'<p class="mu">HR: the office-location check is not applied to you.</p>':''}${!o?'<p class="mu">Office location is not set yet, so check-in works from anywhere.</p>':''}</div>`}
 
-async function prof(){photoData=null;return `<div class="card"><h2>🙋 My profile</h2><div class="row"><div id="phv" style="width:80px;height:80px">${me.photo?`<img src="${me.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`:avatar(me).replace('class="av"','class="av" style="width:80px;height:80px;font-size:32px"')}</div>
+async function prof(){photoData=null;return `<div class="card"><h2>🙋 My profile</h2><div class="row"><div id="phv" style="width:170px;height:170px">${me.photo?`<img src="${me.photo}" style="width:170px;height:170px;border-radius:50%;object-fit:cover">`:avatar(me).replace('class="av"','class="av" style="width:170px;height:170px;font-size:68px"')}</div>
  <label>Profile photo<input type="file" id="ph" accept="image/*"></label></div><div class="row">
  <label>Full name<input id="pn" value="${esc(me.name)}"></label><label>Designation<input id="pp" value="${esc(me.post||'')}"></label><label>Department<input id="pd" value="${esc(me.dept||'')}"></label>
  <label>Date of joining<input type="date" id="pj" value="${esc(me.doj||'')}"></label></div><p class="mu">Email: ${esc(me.email||em)} · Mobile: ${esc(me.mobile||'')}</p>
@@ -170,7 +180,7 @@ async function team(){
  const st=u=>{const a=at[u.id];if(a)return a.status;if(ls.some(l=>l.uid===u.id&&l.status==='Approved'&&l.from<=t&&t<=l.to))return'On leave';return off(t)?(HOL[t]||'Off day'):'Not in yet'};
  const row=l=>`<td>${esc(l.name)}</td><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${esc(l.note||'')}</td>`;
  return `<div class="card"><h2>⏳ Waiting for approval (${pend.length})</h2>${pend.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th></th></tr>${pend.map(l=>`<tr>${row(l)}<td>${canDecide(l)?`<button class="b s" data-a="set" data-k="${l.id}" data-v="Approved">Approve</button> <button class="b s g" data-a="set" data-k="${l.id}" data-v="Rejected">Reject</button>`:'<span class="mu">View only</span>'}</td></tr>`).join('')}</table></div>`:'<p class="mu">Nothing waiting.</p>'}</div>
- <div class="card"><h2>📍 Today</h2><div class="tw"><table><tr><th>Name</th><th>Department</th><th>Status</th><th>Time</th></tr>${us.sort((a,b)=>a.name<b.name?-1:1).map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.dept||'')}</td><td>${st(u)}</td><td>${tm((at[u.id]||{}).at)}</td></tr>`).join('')}</table></div></div>
+ <div class="card"><h2>📍 Today</h2><div class="tw"><table><tr><th>Name</th><th>Department</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th></tr>${us.sort((a,b)=>a.name<b.name?-1:1).map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.dept||'')}</td><td>${st(u)}</td><td>${tm((at[u.id]||{}).at)}</td><td>${tm((at[u.id]||{}).out)}</td><td>${hrs((at[u.id]||{}).at,(at[u.id]||{}).out)}</td></tr>`).join('')}</table></div></div>
  <div class="card"><h2>🗂 Leave history</h2>${hist.length?`<div class="tw"><table><tr><th>Name</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th>Status</th></tr>${hist.map(l=>`<tr>${row(l)}<td>${tag(l.status)}</td></tr>`).join('')}</table></div>`:'<p class="mu">No history yet.</p>'}</div>`}
 
 async function hol(){await loadHol();const ed=has('holidays'),e=Object.entries(HOL).sort();
@@ -179,37 +189,69 @@ async function hol(){await loadHol();const ed=has('holidays'),e=Object.entries(H
  <div class="tw"><table><tr><th>Date</th><th>Day</th><th>Holiday</th>${ed?'<th></th>':''}</tr>${e.map(([d,n])=>`<tr><td>${d}</td><td>${new Date(d+'T00:00').toLocaleDateString('en-IN',{weekday:'long'})}</td><td>${esc(n)}</td>${ed?`<td><button class="b s g" data-a="rh" data-k="${d}">Remove</button></td>`:''}</tr>`).join('')||'<tr><td colspan="4" class="mu">No holidays.</td></tr>'}</table></div>
  <p class="mu">Saturdays and Sundays are weekly offs. Holidays are not counted as leave days.</p></div>`}
 
-let calM=today().slice(0,7),CD={ls:[],A:{},start:''};
-const dayInfo=ds=>{const {ls,A,start}=CD,t=today(),a=A[ds],l=ls.find(x=>x.from<=ds&&ds<=x.to&&x.status!=='Rejected'),h=HOL[ds],wk=WK.includes(new Date(ds+'T00:00').getDay());
+let calMode='me',TL=[],calM=today().slice(0,7),CD={ls:[],A:{},start:''};
+const dayInfo0=ds=>{const {ls,A,start}=CD,t=today(),a=A[ds],l=ls.find(x=>x.from<=ds&&ds<=x.to&&x.status!=='Rejected'),h=HOL[ds],wk=WK.includes(new Date(ds+'T00:00').getDay());
  if(h)return{c:'h',e:'🎉',t:'Holiday: '+h};
  if(a)return a.status==='Late'?{c:'l',e:'⏰',t:'Late · checked in '+tm(a.at)}:a.status==='Half day'?{c:'hd',e:'🌗',t:'Half day · checked in '+tm(a.at)}:{c:'p',e:'✅',t:'Present · checked in '+tm(a.at)};
  if(wk)return{c:'w',e:'',t:'Weekly off'};
  if(l)return l.status==='Approved'?{c:'lv',e:'🌴',t:l.type+(l.half?' (half day)':'')+' · approved'+(l.note?' · '+l.note:'')}:{c:'pn',e:'⏳',t:l.type+' · waiting for approval'};
  if(ds<t&&ds>=start)return{c:'a',e:'🔴',t:'Absent (no check-in and no approved leave)'};
  return{c:'f',e:'',t:ds<t?'':'Working day'}};
-async function cal(){
+const dayInfo=ds=>{const x=dayInfo0(ds),a=CD.A[ds];if(a&&a.out&&x.t)x.t+=' · out '+tm(a.out)+' · worked '+hrs(a.at,a.out);return x};
+const canTeamCal=()=>isOwner||has('team')||has('report');
+const calTabs=()=>canTeamCal()?`<div class="row"><button class="b s ${calMode==='me'?'':'g'}" data-a="cmode" data-k="me">🙋 My calendar</button><button class="b s ${calMode==='team'?'':'g'}" data-a="cmode" data-k="team">👥 Who is on leave</button></div>`:'';
+async function teamCal(){
+ const ls=await get(isOwner||has('report')?query(C('leaves')):query(C('leaves'),where('approvers','array-contains',em)));TL=ls.filter(l=>l.status!=='Rejected');
+ const [y,m]=calM.split('-').map(Number),n=new Date(y,m,0).getDate(),t=today(),ms=calM+'-01',me2=calM+'-31';let cells='';
+ for(let i=0;i<new Date(y,m-1,1).getDay();i++)cells+='<div class="cd e"></div>';
+ for(let d=1;d<=n;d++){const ds=calM+'-'+String(d).padStart(2,'0'),wk=WK.includes(new Date(ds+'T00:00').getDay()),hl=HOL[ds],L=(wk||hl)?[]:TL.filter(l=>l.from<=ds&&ds<=l.to),ap=L.filter(l=>l.status==='Approved').length,pn=L.length-ap;
+  cells+=`<button class="cd ${hl?'h':wk?'w':ap?'lv':pn?'pn':''}${ds===t?' td':''}" data-a="td" data-k="${ds}"><b>${d}</b><span>${hl?'🎉':''}${ap?'🌴'+ap:''}${pn?' ⏳'+pn:''}</span></button>`}
+ const mine=TL.filter(l=>l.from<=me2&&l.to>=ms).sort((a,b)=>a.from<b.from?-1:1);
+ return `<div class="card">${calTabs()}<div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">👥 Who is on leave · ${new Date(y,m-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</h2>
+ <div><button class="b s g" data-a="cm" data-k="-1">◀ Prev</button> <button class="b s g" data-a="cm" data-k="0">Today</button> <button class="b s g" data-a="cm" data-k="1">Next ▶</button></div></div>
+ <div class="calh" style="margin-top:12px">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div>${x}</div>`).join('')}</div><div class="cal">${cells}</div>
+ <div class="lgd"><span>🌴 N = people on approved leave</span><span>⏳ N = leave waiting for approval</span><span>🎉 Holiday</span><span>⬜ Weekly off</span></div>
+ <p id="cdet" class="mu" style="margin-top:10px">👆 Tap a day to see who is on leave.</p></div>
+ <div class="card"><h2>🗂 Leaves this month</h2>${mine.length?`<div class="tw"><table><tr><th>Name</th><th>Post</th><th>Type</th><th>Dates</th><th>Days</th><th>Status</th></tr>${mine.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.post||'')}</td><td>${esc(l.type)}</td><td>${l.from} to ${l.to}</td><td>${days(l)}</td><td>${tag(l.status)}</td></tr>`).join('')}</table></div>`:'<p class="mu">Nobody is on leave this month.</p>'}</div>`}
+async function cal(){if(calMode==='team'&&canTeamCal())return teamCal();
  const [ls,at]=await Promise.all([get(query(C('leaves'),where('uid','==',uid))),get(query(C('attendance'),where('uid','==',uid)))]);
  const A={};at.forEach(a=>A[a.date]=a);const ds0=[...at.map(a=>a.date),...ls.map(l=>l.from)].sort();CD={ls,A,start:me.doj||ds0[0]||today()};
  const [y,m]=calM.split('-').map(Number),n=new Date(y,m,0).getDate(),t=today(),k={p:0,lv:0,a:0,h:0};let cells='';
  for(let i=0;i<new Date(y,m-1,1).getDay();i++)cells+='<div class="cd e"></div>';
  for(let d=1;d<=n;d++){const ds=calM+'-'+String(d).padStart(2,'0'),x=dayInfo(ds);if('p l hd'.split(' ').includes(x.c))k.p++;else if(x.c==='lv')k.lv++;else if(x.c==='a')k.a++;else if(x.c==='h')k.h++;
   cells+=`<button class="cd ${x.c}${ds===t?' td':''}" data-a="cd" data-k="${ds}"><b>${d}</b><span>${x.e}</span></button>`}
- return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">📅 ${new Date(y,m-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</h2>
+ return `<div class="card">${calTabs()}<div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">📅 ${new Date(y,m-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</h2>
  <div><button class="b s g" data-a="cm" data-k="-1">◀ Prev</button> <button class="b s g" data-a="cm" data-k="0">Today</button> <button class="b s g" data-a="cm" data-k="1">Next ▶</button></div></div>
  <div class="tiles" style="margin:12px 0"><div class="tile"><span>✅</span><b>${k.p}</b><small>Days present</small></div><div class="tile"><span>🌴</span><b>${k.lv}</b><small>Leave days</small></div><div class="tile"><span>🔴</span><b>${k.a}</b><small>Absent days</small></div><div class="tile"><span>🎉</span><b>${k.h}</b><small>Holidays</small></div></div>
  <div class="calh">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div>${x}</div>`).join('')}</div><div class="cal">${cells}</div>
  <div class="lgd"><span>✅ Present</span><span>⏰ Late</span><span>🌗 Half day</span><span>🌴 Approved leave</span><span>⏳ Leave pending</span><span>🎉 Holiday</span><span>🔴 Absent</span><span>⬜ Weekly off</span></div>
  <p id="cdet" class="mu" style="margin-top:10px">👆 Tap any day to see the details. Past and future leaves, holidays and attendance all show here.</p></div>`}
+async function ana(){
+ const from=fmt(new Date(Date.now()-30*864e5)),t=today(),yr=String(new Date().getFullYear());
+ const [us,ls,at]=await Promise.all([get(query(C('users'))),get(query(C('leaves'))),get(query(C('attendance'),where('date','>=',from)))]);
+ const ap=ls.filter(l=>l.status==='Approved'&&l.from.startsWith(yr)),dd=[];for(let i=29;i>=0;i--)dd.push(fmt(new Date(Date.now()-i*864e5)));
+ const bt={},bm=Array(12).fill(0),bd={},pp={};ap.forEach(l=>{const n=days(l);bt[l.type]=(bt[l.type]||0)+n;bm[+l.from.slice(5,7)-1]+=n;bd[l.dept||'—']=(bd[l.dept||'—']||0)+n;pp[l.name]=(pp[l.name]||0)+n});
+ const top=Object.entries(pp).sort((a,b)=>b[1]-a[1]).slice(0,10),ta=at.filter(a=>a.date===t),onL=new Set(ls.filter(l=>l.status==='Approved'&&l.from<=t&&t<=l.to).map(l=>l.uid)),lv=[...onL].filter(u=>!ta.some(a=>a.uid===u)).length;
+ const pend=ls.filter(l=>l.status==='Pending').length,tot=ap.reduce((a,l)=>a+days(l),0),wk=at.filter(a=>a.out&&a.at),avgH=wk.length?Math.round(wk.reduce((a,x)=>a+(x.out-x.at)/36e5,0)/wk.length*10)/10:0;
+ POST=async()=>{if(!window.Chart)await new Promise((r,j)=>{const x=document.createElement('script');x.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';x.onload=r;x.onerror=j;document.head.appendChild(x)});
+  Chart.defaults.color=getComputedStyle(document.documentElement).getPropertyValue('--mu').trim()||'#888';const P=['#17806f','#2f6fb0','#e3b04a','#ef7a6c','#9b59b6','#4cc58b','#6fa8e0','#f39c12','#1abc9c','#e67e22'];
+  const mk=(id,type,labels,data,h)=>new Chart($('#'+id),{type,data:{labels,datasets:[{data,backgroundColor:type==='line'?'rgba(23,128,111,.2)':P,borderColor:'#17806f',borderWidth:type==='line'?2:0,fill:type==='line',tension:.3}]},options:{indexAxis:h?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:type==='doughnut'}}}});
+  mk('g1','line',dd.map(d=>d.slice(5)),dd.map(d=>at.filter(a=>a.date===d).length));mk('g2','doughnut',['Present','Late','On leave','Not in yet'],[ta.filter(a=>a.status!=='Late').length,ta.filter(a=>a.status==='Late').length,lv,Math.max(0,us.length-ta.length-lv)]);
+  mk('g3','bar',['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],bm);mk('g4','doughnut',Object.keys(bt),Object.values(bt));mk('g5','bar',Object.keys(bd),Object.values(bd));mk('g6','bar',top.map(x=>x[0]),top.map(x=>x[1]),true)};
+ return `<div class="tiles"><div class="tile"><span>👥</span><b>${us.length}</b><small>Registered staff</small></div><div class="tile"><span>✅</span><b>${ta.length}</b><small>Checked in today</small></div><div class="tile"><span>🌴</span><b>${onL.size}</b><small>On leave today</small></div><div class="tile"><span>⏳</span><b>${pend}</b><small>Pending approvals</small></div><div class="tile"><span>📆</span><b>${tot}</b><small>Leave days this year</small></div><div class="tile"><span>⏱</span><b>${avgH}h</b><small>Avg working hours (30 days)</small></div></div>
+ <div class="two"><div class="card"><h2>📈 Check-ins, last 30 days</h2><div class="chart"><canvas id="g1"></canvas></div></div><div class="card"><h2>🍩 Today's status</h2><div class="chart"><canvas id="g2"></canvas></div></div>
+ <div class="card"><h2>📊 Leave days per month</h2><div class="chart"><canvas id="g3"></canvas></div></div><div class="card"><h2>🥧 Leave by type</h2><div class="chart"><canvas id="g4"></canvas></div></div>
+ <div class="card"><h2>🏢 Leave days by department</h2><div class="chart"><canvas id="g5"></canvas></div></div><div class="card"><h2>🏅 Top 10 by leave days</h2><div class="chart"><canvas id="g6"></canvas></div></div></div>`}
 let rep=[];
 async function report(){
  const [us,ls,at]=await Promise.all([get(query(C('users'))),get(query(C('leaves'))),get(query(C('attendance'),where('date','>=',month+'-01'),where('date','<=',month+'-31')))]);
  const [y,m]=month.split('-').map(Number),n=new Date(y,m,0).getDate(),t=today();
- rep=us.sort((a,b)=>a.name<b.name?-1:1).map(u=>{const c={Present:0,Late:0,'Half day':0,Leave:0,Absent:0};
-  for(let i=1;i<=n;i++){const d=month+'-'+String(i).padStart(2,'0');if(d>t||off(d))continue;const a=at.find(x=>x.uid===u.id&&x.date===d);if(a){c[a.status]++;continue}
+ rep=us.sort((a,b)=>a.name<b.name?-1:1).map(u=>{const c={Present:0,Late:0,'Half day':0,Leave:0,Absent:0,hrs:0};
+  for(let i=1;i<=n;i++){const d=month+'-'+String(i).padStart(2,'0');if(d>t||off(d))continue;const a=at.find(x=>x.uid===u.id&&x.date===d);if(a){c[a.status]++;if(a.out&&a.at)c.hrs+=(a.out-a.at)/36e5;continue}
    const l=ls.find(x=>x.uid===u.id&&x.status==='Approved'&&x.from<=d&&d<=x.to);if(l)c.Leave+=l.half?.5:1;else c.Absent++}
-  return [u.name,u.post||'',u.dept||'',c.Present,c.Late,c['Half day'],c.Leave,c.Absent,(u.allow??21)-used(ls.filter(l=>l.uid===u.id))]});
+  return [u.name,u.post||'',u.dept||'',c.Present,c.Late,c['Half day'],c.Leave,c.Absent,Math.round(c.hrs*10)/10,(u.allow??21)-used(ls.filter(l=>l.uid===u.id))]});
  return `<div class="card"><h2>📊 Monthly report</h2><div class="row"><label>Month<input type="month" id="rm" value="${month}"></label><button class="b" data-a="dlrep">Download Excel</button></div>
- <div class="tw"><table><tr><th>Name</th><th>Post</th><th>Department</th><th>Present</th><th>Late</th><th>Half day</th><th>Leave</th><th>Absent</th><th>Leave left</th></tr>${rep.map(r=>`<tr>${r.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div>
+ <div class="tw"><table><tr><th>Name</th><th>Post</th><th>Department</th><th>Present</th><th>Late</th><th>Half day</th><th>Leave</th><th>Absent</th><th>Hours</th><th>Leave left</th></tr>${rep.map(r=>`<tr>${r.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div>
  <p class="mu">Weekends and holidays are not counted. A working day with no check-in and no approved leave counts as Absent.</p></div>`}
 
 let PU=[];
@@ -219,6 +261,7 @@ async function people(){
  return `<div class="card"><h2>📍 Office location (for check-in)</h2><p class="mu">${oc?`Saved: ${oc.lat.toFixed(5)}, ${oc.lng.toFixed(5)} · allowed radius ${oc.radius} m`:'Not set yet. Check-in works from anywhere until you set it.'}</p>
  <div class="row"><label>Allowed radius (metres)<input id="orad" type="number" min="30" value="${oc?oc.radius:250}" style="width:120px"></label><button class="b" data-a="ol">Set office location to where I am now</button>${oc?'<button class="b s g" data-a="olx">Turn off location check</button>':''}</div>
  <p class="mu">Open this app on your phone while standing inside the office, then press the button. HR (you) is not blocked by the location check.</p></div>
+ <div class="card"><h2>📢 Scrolling notice (top of every page)</h2><div class="row"><label style="flex:1">Message<input id="notice" value="${esc(NOTICE)}" placeholder="e.g. Office closed on Friday for Diwali"></label><button class="b" data-a="sn">Save notice</button></div></div>
  <div class="card"><div class="row"><h2 style="margin:0">People (HR)</h2><button class="b s g" data-a="dlall">⬇ Download all data (Excel)</button></div><p class="mu">Edit details, tab access and the approval line. ✏ changes who a person's leave goes to. Tick "ED/head" for a person whose leave needs no approval.</p>
  <div class="tw"><table><tr><th>Name</th><th>Designation</th><th>Department</th><th>Allowance</th><th>Approval goes to</th><th>Access</th><th>Head</th><th></th></tr>
  ${PU.map(u=>`<tr data-u="${u.id}"><td><input class="nm" value="${esc(u.name)}"><div class="mu">${esc(u.email||'')} · ${esc(u.mobile||'')}</div></td><td><input class="po" value="${esc(u.post||'')}"></td><td><input class="de" value="${esc(u.dept||'')}"></td>
@@ -230,7 +273,7 @@ const bar=()=>{};
 document.addEventListener('change',async e=>{const t=e.target;
  if(t.id==='hx'&&t.files[0]){try{await impHol(t.files[0])}catch(x){alert('Could not read the file: '+x.message)}t.value=''}
  if(t.id==='rm'&&t.value){month=t.value;show()}
- if(t.id==='ph'&&t.files[0]){const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,220/Math.max(img.width,img.height));c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);photoData=c.toDataURL('image/jpeg',.7);$('#phv').innerHTML=`<img src="${photoData}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`};img.src=URL.createObjectURL(t.files[0])}});
+ if(t.id==='ph'&&t.files[0]){const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,420/Math.max(img.width,img.height));c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);photoData=c.toDataURL('image/jpeg',.8);$('#phv').innerHTML=`<img src="${photoData}" style="width:170px;height:170px;border-radius:50%;object-fit:cover">`};img.src=URL.createObjectURL(t.files[0])}});
 const mobId=async v=>{v=v.trim();if(v.includes('@'))return v;const s=await getDoc(doc(db,'phoneIndex',v.replace(/\D/g,'').slice(-10)));if(!s.exists())throw {message:'Mobile number not found.'};return s.data().email};
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,k=b.dataset.k,m=t=>{const x=$('#m');if(x)x.textContent=t;else alert(t)};
  try{
@@ -254,13 +297,17 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  if(a==='ci'){const o=await offCfg();let loc={};if(o&&!isOwner){const c=await gp(),dist=Math.round(hav(o.lat,o.lng,c.latitude,c.longitude));
    if(c.accuracy>200)return alert('Your location is not accurate enough (±'+Math.round(c.accuracy)+' m). Turn on GPS and try again.');
    if(dist>o.radius)return alert('You are about '+dist+' m from the office. Check-in works only within '+o.radius+' m of the office premises.');loc={lat:c.latitude,lng:c.longitude,acc:Math.round(c.accuracy),dist}}
-  const id=today()+'_'+uid,s=await getDoc(doc(db,'attendance',id));await setDoc(doc(db,'attendance',id),{uid,name:me.name,dept:me.dept||'',date:today(),status:k,at:s.exists()?s.data().at:Date.now(),approvers:apprs(),...loc});show()}
+  const id=today()+'_'+uid,s=await getDoc(doc(db,'attendance',id));await setDoc(doc(db,'attendance',id),{uid,name:me.name,dept:me.dept||'',date:today(),status:k,at:s.exists()?s.data().at:Date.now(),approvers:apprs(),...(s.exists()&&s.data().out?{out:s.data().out}:{}),...loc});show()}
+ if(a==='co'){const id=today()+'_'+uid,s=await getDoc(doc(db,'attendance',id));if(!s.exists())return alert('Please check in first.');const o=await offCfg();let loc={};
+  if(o&&!isOwner){const c=await gp(),dist=Math.round(hav(o.lat,o.lng,c.latitude,c.longitude));if(c.accuracy>200)return alert('Your location is not accurate enough. Turn on GPS and try again.');if(dist>o.radius)return alert('You are about '+dist+' m from the office. Check-out works only inside the office premises.');loc={lat:c.latitude,lng:c.longitude,acc:Math.round(c.accuracy),dist}}
+  await setDoc(doc(db,'attendance',id),{...s.data(),out:Date.now(),...loc});toast('🚪','Checked out. Worked '+hrs(s.data().at,Date.now()));show()}
+ if(a==='sn'){await setDoc(doc(db,'config','notice'),{text:$('#notice').value.trim()});NOTICE=$('#notice').value.trim();toast('📢','Notice updated');show()}
  if(a==='ol'){const r=+$('#orad').value||250,c=await gp();if(c.accuracy>100&&!confirm('Your location accuracy is only ±'+Math.round(c.accuracy)+' m. Save anyway? Better: use your phone, outdoors near the entrance.'))return;
   const dl=r/111320,dg=r/(111320*Math.cos(c.latitude*Math.PI/180));await setDoc(doc(db,'config','office'),{lat:c.latitude,lng:c.longitude,radius:r,minLat:c.latitude-dl,maxLat:c.latitude+dl,minLng:c.longitude-dg,maxLng:c.longitude+dg});toast('📍','Office location saved');show()}
  if(a==='olx'&&confirm('Turn off the location check? Check-in will then work from anywhere.')){await deleteDoc(doc(db,'config','office'));show()}
  if(a==='set'){await updateDoc(doc(db,'leaves',k),{status:b.dataset.v,decidedBy:em});notify('decided',k);show()}
  if(a==='ps'){const d={name:$('#pn').value.trim(),post:$('#pp').value.trim(),dept:$('#pd').value.trim(),doj:$('#pj').value};if(!d.name)return m('Name is required.');d.nameLower=d.name.toLowerCase();if(photoData)d.photo=photoData;await updateDoc(doc(db,'users',uid),d);me={...me,...d};toast('✅','Profile saved');show()}
- if(a==='dlrep')await xl({Report:[['Name','Post','Department','Present','Late','Half day','Leave','Absent','Leave left'],...rep]},'attendance-report-'+month+'.xlsx');
+ if(a==='dlrep')await xl({Report:[['Name','Post','Department','Present','Late','Half day','Leave','Absent','Hours worked','Leave left'],...rep]},'attendance-report-'+month+'.xlsx');
  if(a==='alltabs'){b.closest('tr').querySelectorAll('.tb').forEach(c=>c.checked=true);return}
  if(a==='sp'){const r=b.closest('tr'),q=s=>r.querySelector(s);await updateDoc(doc(db,'users',r.dataset.u),{name:q('.nm').value.trim(),nameLower:q('.nm').value.trim().toLowerCase(),post:q('.po').value.trim(),dept:q('.de').value.trim(),allow:+q('.al').value||0,head:q('.hd').checked,tabs:[...r.querySelectorAll('.tb:checked')].map(c=>c.dataset.t)});b.textContent='Saved'}
  if(a==='rl'){const r=b.closest('tr'),u=PU.find(x=>x.id===r.dataset.u),v=prompt('Who should approve '+u.name+'\'s leave?\nType their login email(s), separated by commas. Leave empty = HR only.',(u.reportsTo||[]).join(', '));if(v===null)return;
@@ -280,6 +327,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  if(a==='ht')await xl({Holidays:[['Date (YYYY-MM-DD)','Holiday name'],['2027-01-26','Republic Day'],['2027-08-15','Independence Day']]},'holiday-template.xlsx');
 
  if(a==='cm'){const [y,mm]=calM.split('-').map(Number);calM=+k===0?today().slice(0,7):fmt(new Date(y,mm-1+(+k),1)).slice(0,7);return show()}
+ if(a==='cmode'){calMode=k;return show()}
+ if(a==='td'){const L=TL.filter(l=>l.from<=k&&k<=l.to&&!WK.includes(new Date(k+'T00:00').getDay())&&!HOL[k]);$('#cdet').innerHTML='<b>'+new Date(k+'T00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</b>'+(HOL[k]?' — 🎉 '+esc(HOL[k]):'')+(L.length?'<br>'+L.map(l=>'• <b>'+esc(l.name)+'</b>'+(l.post?' ('+esc(l.post)+')':'')+' — '+esc(l.type)+' · '+(l.status==='Approved'?'✅ approved':'⏳ pending')).join('<br>'):'<br>Nobody on leave.')}
  if(a==='cd'){const x=dayInfo(k);$('#cdet').innerHTML='<b>'+new Date(k+'T00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</b> — '+x.e+' '+esc(x.t||'No record')}
  }catch(x){reg=false;m(x.code==='auth/invalid-credential'?'Wrong email or password.':x.code==='auth/email-already-in-use'?'This email already has an account.':x.message)}});
 </script></body></html>
