@@ -53,8 +53,15 @@ button.b.g{border-radius:10px}
 .fl{position:absolute;bottom:-34px;font-size:22px;opacity:.65;animation:up 7s linear infinite;pointer-events:none}@keyframes up{to{transform:translateY(-170px) rotate(25deg);opacity:0}}
 .ecg{width:100%;height:34px}.ecg path{fill:none;stroke:#17806f;stroke-width:2.2;stroke-dasharray:300;stroke-dashoffset:300;animation:ek 2.6s linear infinite}.hero .ecg path{stroke:#fff}@keyframes ek{to{stroke-dashoffset:-300}}
 .chart{height:260px;position:relative}.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+
+.flt td{padding:2px 4px}.flt input{width:100%;min-width:70px;padding:3px 6px;font-size:12px}th[data-s]{cursor:pointer}.ts{overflow-x:auto;overflow-y:hidden;height:14px}
+.chat{display:grid;grid-template-columns:270px 1fr;gap:12px}.cl{max-height:62vh;overflow:auto}.cm{display:flex;flex-direction:column;border:1px solid var(--ln);border-radius:14px;padding:10px;min-height:340px}
+.msgs{flex:1;overflow:auto;display:flex;flex-direction:column;gap:6px;max-height:50vh;min-height:240px;padding:4px}.bub{max-width:78%;padding:7px 12px;border-radius:14px;background:var(--ln);align-self:flex-start;word-break:break-word}
+.bub.me{align-self:flex-end;background:linear-gradient(135deg,#17806f,#2f6fb0);color:#fff}.bub small{display:block;opacity:.7;font-size:11px}
+.ci{padding:7px;border-radius:10px;cursor:pointer;display:flex;gap:8px;align-items:center}.ci:hover,.ci.on{background:var(--ln)}
+@media(max-width:720px){.chat{grid-template-columns:1fr}}
 </style></head><body>
-<header><div id="who"></div><h1 style="display:flex;align-items:center;gap:8px"><img src="logo.png" alt="" height="34" style="background:#fff;border-radius:6px;padding:2px" onerror="this.remove()">Attendance &amp; Leave</h1><nav id="nav"></nav></header><div id="tick" class="tick"></div>
+<header><div id="who"></div><h1 style="display:flex;align-items:center;gap:8px"><img src="logo.png" alt="" height="62" style="background:#fff;border-radius:6px;padding:2px" onerror="this.remove()">Attendance &amp; Leave</h1><nav id="nav"></nav></header><div id="tick" class="tick"></div>
 <main id="app"></main>
 <script type="module">
 // ======= 1. PASTE YOUR FIREBASE CONFIG HERE (Firebase console > Project settings > Your apps) =======
@@ -75,7 +82,7 @@ const off=d=>WK.includes(new Date(d+'T00:00').getDay())||!!HOL[d];
 const TYPES=['Leave','Maternity leave','Abortion leave','Paternity leave','Extraordinary leave (Unpaid)','Leave for serious illness of employee (Paid)','Compensatory leave','General condition of admissibility of leaves'],DEDUCT=['Leave','Annual leave','Casual leave','Sick leave'];
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail,sendEmailVerification} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,addDoc,updateDoc,deleteDoc,collection,query,where,getDocs,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc,addDoc,updateDoc,deleteDoc,collection,query,where,getDocs,writeBatch,onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 /*3D moving background*/
 const IC={"cross": "<circle r=\"18\"/><path d=\"M0-9v18M-9 0h18\"/>", "ecg": "<path d=\"M-28 0h15l5-15 8 30 8-36 5 21h19\"/>", "pill": "<g transform=\"rotate(-35)\"><rect x=\"-22\" y=\"-11\" width=\"44\" height=\"22\" rx=\"11\"/><path d=\"M0-11v22\"/></g>", "heart": "<path d=\"M0 20c-22-14-26-34-12-42 7-4 12 0 12 6 0-6 5-10 12-6 14 8 10 28-12 42z\"/>", "calcheck": "<rect x=\"-18\" y=\"-16\" width=\"36\" height=\"34\" rx=\"4\"/><path d=\"M-18-6h36M-9-22v10M9-22v10M-8 6l5 5 10-10\"/>", "thermo": "<rect x=\"-5\" y=\"-24\" width=\"10\" height=\"38\" rx=\"5\"/><circle cy=\"18\" r=\"9\"/>", "syringe": "<g transform=\"rotate(-40)\"><rect x=\"-22\" y=\"-8\" width=\"44\" height=\"16\" rx=\"3\"/><path d=\"M22 0h16M-22 0h-14M-36-7v14M-8-8v16M0-8v16\"/></g>", "clock": "<circle r=\"19\"/><path d=\"M0-10v10l8 5\"/>", "clip": "<rect x=\"-16\" y=\"-20\" width=\"32\" height=\"40\" rx=\"4\"/><rect x=\"-8\" y=\"-25\" width=\"16\" height=\"8\" rx=\"3\"/><path d=\"M-8 2l5 5 11-12M-8 14h16\"/>", "id": "<rect x=\"-22\" y=\"-15\" width=\"44\" height=\"30\" rx=\"4\"/><circle cx=\"-9\" cy=\"-3\" r=\"5\"/><path d=\"M-16 10c1-6 13-6 14 0M4-5h14M4 3h14\"/>", "person": "<circle cx=\"-4\" cy=\"-8\" r=\"8\"/><path d=\"M-20 18c0-12 8-16 16-16s16 4 16 16M10 4l5 5 9-10\"/>", "calx": "<rect x=\"-18\" y=\"-16\" width=\"36\" height=\"34\" rx=\"4\"/><path d=\"M-18-6h36M-9-22v10M9-22v10M-6 4l12 12M6 4l-12 12\"/>", "steth": "<g transform=\"translate(-6 -1)\"><path d=\"M-14-22v12a14 14 0 0 0 28 0v-12M0 4v10a10 10 0 0 0 20 0\"/><circle cx=\"-14\" cy=\"-24\" r=\"2.5\"/><circle cx=\"14\" cy=\"-24\" r=\"2.5\"/><circle cx=\"20\" cy=\"20\" r=\"6\"/></g>", "hosp": "<rect x=\"-20\" y=\"-20\" width=\"40\" height=\"40\" rx=\"2\"/><path d=\"M0-14v12M-6-8h12M-5 20v-10h10v10M-14 4h4M10 4h4\"/>", "micro": "<g transform=\"rotate(-25)\"><rect x=\"-5\" y=\"-26\" width=\"10\" height=\"28\" rx=\"2\"/><path d=\"M-3 2h6v10h-6zM-12 16h24\"/></g><path d=\"M-20 24h40M8-6a16 16 0 0 1-2 30\"/>", "band": "<g transform=\"rotate(-40)\"><rect x=\"-24\" y=\"-9\" width=\"48\" height=\"18\" rx=\"9\"/><rect x=\"-8\" y=\"-9\" width=\"16\" height=\"18\"/></g>"};
 {const bg=document.createElement('div');bg.id='bg';
@@ -110,7 +117,36 @@ const used=ls=>ls.filter(l=>l.status==='Approved'&&DEDUCT.includes(l.type)&&l.fr
 const gp=()=>new Promise((res,rej)=>{if(!navigator.geolocation)return rej({message:'This device does not support location.'});navigator.geolocation.getCurrentPosition(p=>res(p.coords),e=>rej({message:e.code===1?'Location permission was denied. Allow location for this site in your browser settings and try again.':'Could not get your location. Turn on GPS/location and try again.'}),{enableHighAccuracy:true,timeout:20000,maximumAge:0})});
 const hav=(a,b,c,d)=>{const R=6371000,r=x=>x*Math.PI/180,x=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
 const offCfg=async()=>{try{const s=await getDoc(doc(db,'config','office'));return s.exists()?s.data():null}catch(e){return null}};
-let HDB=false,NOTICE='',POST=null;
+let HDB=false,NOTICE='',POST=null,AF={m:'all',v:''},MSGS=[],CHU=null,CUR=null,CURO=null,CURN='',DIR=[];
+const MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function fixDates(r){if(!r)return;const w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT),ns=[];while(w.nextNode())ns.push(w.currentNode);
+ ns.forEach(n=>{if(!/\d{4}-\d{2}-\d{2}/.test(n.nodeValue)||n.parentElement.closest('script,style,textarea,option'))return;const o=n.nodeValue;if(n.parentElement.tagName==='TD')n.parentElement.dataset.v=o;
+  n.nodeValue=o.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g,(m,y,mo,d)=>(+d)+' '+MON[+mo-1]+' '+y)})}
+function enh(root){root.querySelectorAll('table').forEach(t=>{if(t.dataset.e)return;const rows=[...t.rows];if(rows.length<3||!rows[0].querySelector('th'))return;t.dataset.e=1;const hr=rows[0],f=t.insertRow(1);f.className='flt';
+ [...hr.cells].forEach((th,i)=>{const c=f.insertCell();if(!th.textContent.trim())return;const inp=document.createElement('input');inp.placeholder='🔎';inp.dataset.c=i;c.appendChild(inp);th.dataset.s=0;th.title='Click to sort'});
+ const body=()=>[...t.rows].filter(r=>r!==hr&&r!==f),txt=(r,i)=>{const c=r.cells[i];if(!c)return'';const iv=[...c.querySelectorAll('input:not([type=checkbox]),select')].map(x=>x.value).join(' ');return String(c.dataset.v||iv||c.textContent).toLowerCase()};
+ f.addEventListener('input',()=>{const q=[...f.querySelectorAll('input')].map(x=>[+x.dataset.c,x.value.toLowerCase()]).filter(x=>x[1]);body().forEach(r=>r.style.display=q.every(([i,v])=>txt(r,i).includes(v))?'':'none')});
+ hr.addEventListener('click',e=>{const th=e.target.closest('th');if(!th||th.dataset.s===undefined)return;const i=th.cellIndex,d=th.dataset.s==='1'?-1:1;th.dataset.s=d;const rs=body();rs.sort((a,b)=>txt(a,i).localeCompare(txt(b,i),undefined,{numeric:true})*d);rs.forEach(r=>t.tBodies[0].appendChild(r))})})}
+function topScroll(root){root.querySelectorAll('.tw').forEach(w=>{if(w.dataset.ts||w.scrollWidth<=w.clientWidth+2)return;w.dataset.ts=1;const t=document.createElement('div');t.className='ts';t.innerHTML='<div style="width:'+w.scrollWidth+'px;height:1px"></div>';w.before(t);let a=0;t.onscroll=()=>{if(a){a=0;return}a=1;w.scrollLeft=t.scrollLeft};w.onscroll=()=>{if(a){a=0;return}a=1;t.scrollLeft=w.scrollLeft}})}
+const cid=(a,b)=>[a,b].sort().join('_'),ini=n=>`<span class="av" style="width:34px;height:34px;font-size:15px;flex:none">${esc((n||'?')[0].toUpperCase())}</span>`;
+const seenT=c=>{try{return +localStorage.getItem('seen_'+uid+'_'+c)||0}catch(e){return 0}},unread=()=>MSGS.filter(m=>m.to===uid&&m.ts>seenT(m.chat)).length;
+function syncDir(){setDoc(doc(db,'directory',uid),{name:me.name,nameLower:(me.name||'').toLowerCase(),post:me.post||'',dept:me.dept||'',hr:!!isOwner},{merge:true}).catch(()=>{})}
+function startChat(){if(CHU)CHU();CHU=onSnapshot(query(C('messages'),where('members','array-contains',uid)),s=>{MSGS=s.docs.map(d=>({id:d.id,...d.data()}));const b=document.querySelector('#nav [data-k="chat"]');if(b)b.textContent='💬 Chat'+(unread()?' ('+unread()+')':'');if(tab==='chat')paintChat()},()=>{})}
+function afterLogin(){syncDir();startChat()}
+function paintMsgs(){const B=$('#msgs');if(!B||!CUR)return;const ms=MSGS.filter(m=>m.chat===CUR).sort((a,b)=>a.ts-b.ts);let last='';
+ B.innerHTML=ms.map(m=>{const d=fmt(new Date(m.ts)),h=d!==last?`<div class="mu" style="text-align:center">${d}</div>`:'';last=d;return h+`<div class="bub ${m.from===uid?'me':''}">${esc(m.text)}<small>${tm(m.ts)}</small></div>`}).join('')||'<p class="mu">Say hello 👋</p>';
+ B.scrollTop=B.scrollHeight;fixDates(B);if(ms.length){try{localStorage.setItem('seen_'+uid+'_'+CUR,String(ms[ms.length-1].ts))}catch(e){}}}
+function openChat(o,nm){CURO=o;CURN=nm;CUR=cid(uid,o);$('#cwin').innerHTML=`<div class="row" style="align-items:center">${ini(nm)}<b>${esc(nm)}</b></div><div class="msgs" id="msgs"></div><div class="row"><input id="ct" style="flex:1" placeholder="Type a message…" maxlength="1000"><button class="b" data-a="cs2">Send ➤</button></div><div>${['😊','👍','🙏','😂','❤️','🎉','✅','😢'].map(e=>`<button class="b s g" data-a="em" data-k="${e}">${e}</button>`).join(' ')}</div>`;paintMsgs();paintChat()}
+function paintChat(){const L=$('#clist');if(!L)return;const q=($('#cs').value||'').toLowerCase().trim(),by={};MSGS.forEach(m=>(by[m.chat]=by[m.chat]||[]).push(m));
+ const items=Object.keys(by).map(c=>{const ms=by[c].sort((a,b)=>a.ts-b.ts),l=ms[ms.length-1],o=l.members.find(x=>x!==uid);return{c,o,l,nm:(DIR.find(u=>u.id===o)||{}).name||(l.from===uid?l.toName:l.fromName)||'User',un:ms.filter(m=>m.to===uid&&m.ts>seenT(c)).length}}).sort((a,b)=>b.l.ts-a.l.ts);
+ const found=q?DIR.filter(u=>(u.name||'').toLowerCase().includes(q)).slice(0,8):[];
+ L.innerHTML=(q?'<div class="mu">People</div>'+(found.map(u=>`<div class="ci ${CUR===cid(uid,u.id)?'on':''}" data-a="co2" data-k="${u.id}" data-n="${esc(u.name)}">${ini(u.name)}<span><b>${esc(u.name)}</b><br><small class="mu">${esc(u.post||u.dept||'')}</small></span></div>`).join('')||'<p class="mu">No match</p>'):'')
+  +'<div class="mu" style="margin-top:6px">Conversations</div>'+(items.map(i=>`<div class="ci ${CUR===i.c?'on':''}" data-a="co2" data-k="${i.o}" data-n="${esc(i.nm)}">${ini(i.nm)}<span><b>${esc(i.nm)}</b>${i.un?` <span class="tag Pending">${i.un}</span>`:''}<br><small class="mu">${esc(i.l.text.slice(0,30))}</small></span></div>`).join('')||'<p class="mu">No conversations yet.</p>');
+ if(CUR)paintMsgs();const b=document.querySelector('#nav [data-k="chat"]');if(b)b.textContent='💬 Chat'+(unread()?' ('+unread()+')':'')}
+async function chat(){DIR=(await get(query(C('directory')))).filter(u=>u.id!==uid);POST=()=>{CUR=null;paintChat()};
+ return `<div class="card"><div class="row" style="align-items:center"><h2 style="margin:0">💬 Chat</h2>${isOwner?'':'<button class="b" data-a="chr">🆘 Need help? Chat with HR</button>'}</div>
+ <div class="chat"><div class="cl"><input id="cs" placeholder="🔎 Search a colleague by name…" style="width:100%"><div id="clist"></div></div><div class="cm" id="cwin"><p class="mu">Select a conversation, or search a name to start a new chat. 💬</p></div></div>
+ <p class="mu">Messages are private between you and the other person.</p></div>`}
 const hrs=(a,o)=>{if(!a||!o)return'';const m=Math.round((o-a)/60000);return Math.floor(m/60)+'h '+m%60+'m'};
 const ECG='<svg class="ecg" viewBox="0 0 200 40"><path d="M0 22h58l8-15 10 30 10-36 8 21h106"/></svg>';
 async function loadNotice(){try{const n=await getDoc(doc(db,'config','notice'));NOTICE=n.exists()?n.data().text||'':''}catch(e){}}
@@ -129,23 +165,23 @@ const avatar=u=>u.photo?`<img src="${u.photo}" alt="">`:`<span class="av">${esc(
 
 onAuthStateChanged(auth,async u=>{if(reg)return;if(!u){me=null;return login()}
  uid=u.uid;em=u.email.toLowerCase();const s=await getDoc(doc(db,'users',uid));if(!s.exists()){msg='Profile not found. Ask HR.';await signOut(auth);return}
- me=s.data();isOwner=em===OWNER&&u.emailVerified;await loadHol();await loadNotice();
+ me=s.data();isOwner=em===OWNER&&u.emailVerified;await loadHol();await loadNotice();afterLogin();
  if(em===OWNER&&!u.emailVerified){sendEmailVerification(u).catch(()=>{});alert('A verification email was sent to '+u.email+'. Click the link in it, then sign in again to get HR powers.')}
  tab='mine';show()});
 
 const pw=(id,ac)=>`<div class="pw"><input id="${id}" type="password" autocomplete="${ac}"><button type="button" class="eye" data-a="eye" aria-label="Show or hide password">👁</button></div>`;
-function login(r){$('#nav').innerHTML='';$('#who').innerHTML='';$('#tick').innerHTML='';$('#app').innerHTML=`<div class="card login"><img class="lg" src="logo.png" alt="SHSRC Maharashtra" style="display:block;margin:0 auto 14px;height:110px;background:#fff;border-radius:12px;padding:6px" onerror="this.remove()"><p style="text-align:center;margin:0 0 10px"><b>Welcome to SHSRC 💚</b><br><span class="mu">Attendance &amp; Leave Portal · Maharashtra</span>${ECG}</p><h2>${r?'🆕 Create account':'🔐 Sign in'}</h2>
+function login(r){$('#nav').innerHTML='';$('#who').innerHTML='';$('#tick').innerHTML='';$('#app').innerHTML=`<div class="card login"><img class="lg" src="logo.png" alt="SHSRC Maharashtra" style="display:block;margin:0 auto 14px;height:170px;background:#fff;border-radius:12px;padding:6px" onerror="this.remove()"><p style="text-align:center;margin:0 0 10px"><b>Welcome to SHSRC 💚</b><br><span class="mu">Attendance &amp; Leave Portal · Maharashtra</span>${ECG}</p><h2>${r?'🆕 Create account':'🔐 Sign in'}</h2>
  <div class="row" style="flex-direction:column;align-items:stretch">
  ${r?'<label>Full name *<input id="n"></label><label>Designation (optional)<input id="po" placeholder="e.g. Consultant"></label><label>Department (optional)<input id="d" placeholder="e.g. Finance"></label><label>Mobile number *<input id="mo" type="tel" inputmode="numeric" maxlength="10"></label><label>Email *<input id="e" type="email" autocomplete="username"></label>':'<label>Email or mobile number<input id="e" autocomplete="username"></label>'}
  <label>Password${r?' *':''}${pw('p',r?'new-password':'current-password')}</label>
  <button class="b" data-a="${r?'reg':'in'}">${r?'Create account':'Sign in'}</button><button class="b g" data-a="${r?'tl':'tr'}">${r?'I already have an account':'Create new account'}</button>
  ${r?'':'<button class="b g" data-a="rs">Forgot password</button>'}</div><p class="err" id="m">${esc(msg)}</p></div>`;msg=''}
 
-function show(){const t={mine:'🌴 My leave',cal:'📅 Calendar',check:'📍 Check in'};if(has('team'))t.team='👥 Team';if(has('report')){t.report='📊 Report';t.ana='📈 Analytics'}t.hol='🎉 Holidays';if(isOwner)t.people='⚙️ People';
+function show(){const t={mine:'🌴 My leave',cal:'📅 Calendar',check:'📍 Check in'};if(has('team'))t.team='👥 Team';if(has('report')){t.report='📊 Report';t.ana='📈 Analytics'}t.hol='🎉 Holidays';if(isOwner)t.people='⚙️ People';t.chat='💬 Chat'+(unread()?' ('+unread()+')':'');
  $('#who').innerHTML=`<button class="chip" data-a="tab" data-k="prof">${avatar(me)}<span><b>${esc(me.name)}</b><br><small>${esc([me.post,me.dept].filter(Boolean).join(' · ')||'Add designation')}${me.doj?' · DOJ '+esc(me.doj):''}</small></span></button>`;
  $('#nav').innerHTML=Object.entries(t).map(([k,v])=>`<button class="${k===tab?'on':''}" data-a="tab" data-k="${k}">${v}</button>`).join('')+`<button data-a="mo">Motion: ${$('#bg')&&$('#bg').classList.contains('nomo')?'Off':'On'}</button><button data-a="out">Sign out</button>`;
  {const nh=Object.entries(HOL).filter(([d])=>d>=today()).sort()[0],tx='📢 '+(NOTICE||'Welcome to the SHSRC Attendance & Leave Portal 💚')+(nh?'   •   🎉 Next holiday: '+nh[1]+' on '+nh[0]:'');$('#tick').innerHTML='<span>'+esc(tx)+'</span>'}
- $('#app').innerHTML='<p class="mu">Loading…</p>';({mine,cal,ana,check,team,report,hol,people,prof})[tab]().then(h=>{$('#app').innerHTML=h;if(POST){const f=POST;POST=null;f()}}).catch(e=>$('#app').innerHTML=`<div class="card err">Error: ${esc(e.message)}</div>`)}
+ $('#app').innerHTML='<p class="mu">Loading…</p>';({mine,cal,ana,chat,check,team,report,hol,people,prof})[tab]().then(h=>{$('#app').innerHTML=h;fixDates($('#app'));fixDates($('#who'));fixDates($('#tick'));enh($('#app'));setTimeout(()=>topScroll($('#app')),80);if(POST){const f=POST;POST=null;f()}}).catch(e=>$('#app').innerHTML=`<div class="card err">Error: ${esc(e.message)}</div>`)}
 
 async function mine(){
  const ls=(await get(query(C('leaves'),where('uid','==',uid)))).sort((a,b)=>a.from<b.from?1:-1),u=used(ls),al=me.allow??21;
@@ -228,7 +264,10 @@ async function cal(){if(calMode==='team'&&canTeamCal())return teamCal();
  <p id="cdet" class="mu" style="margin-top:10px">👆 Tap any day to see the details. Past and future leaves, holidays and attendance all show here.</p></div>`}
 async function ana(){
  const from=fmt(new Date(Date.now()-30*864e5)),t=today(),yr=String(new Date().getFullYear());
- const [us,ls,at]=await Promise.all([get(query(C('users'))),get(query(C('leaves'))),get(query(C('attendance'),where('date','>=',from)))]);
+ const [us0,ls0,at0]=await Promise.all([get(query(C('users'))),get(query(C('leaves'))),get(query(C('attendance'),where('date','>=',from)))]);
+ const inS=u=>AF.m==='all'||!AF.v||(AF.m==='dept'&&u.dept===AF.v)||(AF.m==='team'&&(u.reportsTo||[]).includes(AF.v))||(AF.m==='emp'&&u.id===AF.v),us=us0.filter(inS),ids=new Set(us.map(u=>u.id)),ls=ls0.filter(l=>ids.has(l.uid)),at=at0.filter(a=>ids.has(a.uid));
+ const em2n={};us0.forEach(u=>em2n[(u.email||'').toLowerCase()]=u.name);const opts=AF.m==='dept'?[...new Set(us0.map(u=>u.dept).filter(Boolean))].sort().map(d=>[d,d]):AF.m==='team'?[...new Set(us0.flatMap(u=>u.reportsTo||[]))].map(e=>[e,'Team of '+(em2n[e]||e)]):AF.m==='emp'?us0.sort((a,b)=>a.name<b.name?-1:1).map(u=>[u.id,u.name]):[];
+ const fbar=`<div class="card"><div class="row"><label>📊 View data for<select id="am"><option value="all" ${AF.m==='all'?'selected':''}>🏛 Whole SHSRC</option><option value="dept" ${AF.m==='dept'?'selected':''}>🏢 Department by department</option><option value="team" ${AF.m==='team'?'selected':''}>👥 Team by team</option><option value="emp" ${AF.m==='emp'?'selected':''}>👤 Employee by employee</option></select></label>${AF.m==='all'?'':`<label>Choose<select id="av"><option value="">— select —</option>${opts.map(([v,n])=>`<option value="${esc(v)}" ${AF.v===v?'selected':''}>${esc(n)}</option>`).join('')}</select></label>`}<span class="mu">Showing ${us.length} employee(s)</span></div></div>`;
  const ap=ls.filter(l=>l.status==='Approved'&&l.from.startsWith(yr)),dd=[];for(let i=29;i>=0;i--)dd.push(fmt(new Date(Date.now()-i*864e5)));
  const bt={},bm=Array(12).fill(0),bd={},pp={};ap.forEach(l=>{const n=days(l);bt[l.type]=(bt[l.type]||0)+n;bm[+l.from.slice(5,7)-1]+=n;bd[l.dept||'—']=(bd[l.dept||'—']||0)+n;pp[l.name]=(pp[l.name]||0)+n});
  const top=Object.entries(pp).sort((a,b)=>b[1]-a[1]).slice(0,10),ta=at.filter(a=>a.date===t),onL=new Set(ls.filter(l=>l.status==='Approved'&&l.from<=t&&t<=l.to).map(l=>l.uid)),lv=[...onL].filter(u=>!ta.some(a=>a.uid===u)).length;
@@ -238,7 +277,7 @@ async function ana(){
   const mk=(id,type,labels,data,h)=>new Chart($('#'+id),{type,data:{labels,datasets:[{data,backgroundColor:type==='line'?'rgba(23,128,111,.2)':P,borderColor:'#17806f',borderWidth:type==='line'?2:0,fill:type==='line',tension:.3}]},options:{indexAxis:h?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:type==='doughnut'}}}});
   mk('g1','line',dd.map(d=>d.slice(5)),dd.map(d=>at.filter(a=>a.date===d).length));mk('g2','doughnut',['Present','Late','On leave','Not in yet'],[ta.filter(a=>a.status!=='Late').length,ta.filter(a=>a.status==='Late').length,lv,Math.max(0,us.length-ta.length-lv)]);
   mk('g3','bar',['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],bm);mk('g4','doughnut',Object.keys(bt),Object.values(bt));mk('g5','bar',Object.keys(bd),Object.values(bd));mk('g6','bar',top.map(x=>x[0]),top.map(x=>x[1]),true)};
- return `<div class="tiles"><div class="tile"><span>👥</span><b>${us.length}</b><small>Registered staff</small></div><div class="tile"><span>✅</span><b>${ta.length}</b><small>Checked in today</small></div><div class="tile"><span>🌴</span><b>${onL.size}</b><small>On leave today</small></div><div class="tile"><span>⏳</span><b>${pend}</b><small>Pending approvals</small></div><div class="tile"><span>📆</span><b>${tot}</b><small>Leave days this year</small></div><div class="tile"><span>⏱</span><b>${avgH}h</b><small>Avg working hours (30 days)</small></div></div>
+ return fbar+`<div class="tiles"><div class="tile"><span>👥</span><b>${us.length}</b><small>Registered staff</small></div><div class="tile"><span>✅</span><b>${ta.length}</b><small>Checked in today</small></div><div class="tile"><span>🌴</span><b>${onL.size}</b><small>On leave today</small></div><div class="tile"><span>⏳</span><b>${pend}</b><small>Pending approvals</small></div><div class="tile"><span>📆</span><b>${tot}</b><small>Leave days this year</small></div><div class="tile"><span>⏱</span><b>${avgH}h</b><small>Avg working hours (30 days)</small></div></div>
  <div class="two"><div class="card"><h2>📈 Check-ins, last 30 days</h2><div class="chart"><canvas id="g1"></canvas></div></div><div class="card"><h2>🍩 Today's status</h2><div class="chart"><canvas id="g2"></canvas></div></div>
  <div class="card"><h2>📊 Leave days per month</h2><div class="chart"><canvas id="g3"></canvas></div></div><div class="card"><h2>🥧 Leave by type</h2><div class="chart"><canvas id="g4"></canvas></div></div>
  <div class="card"><h2>🏢 Leave days by department</h2><div class="chart"><canvas id="g5"></canvas></div></div><div class="card"><h2>🏅 Top 10 by leave days</h2><div class="chart"><canvas id="g6"></canvas></div></div></div>`}
@@ -270,14 +309,17 @@ async function people(){
  <td><input type="checkbox" class="hd" ${u.head?'checked':''}></td><td style="white-space:nowrap"><button class="b s" data-a="sp">Save</button> <button class="b s g" data-a="du">Delete</button></td></tr>`).join('')}</table></div></div>`}
 
 const bar=()=>{};
+document.addEventListener('input',e=>{if(e.target.id==='cs')paintChat()});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='ct'){e.preventDefault();document.querySelector('[data-a="cs2"]').click()}});
 document.addEventListener('change',async e=>{const t=e.target;
+ if(t.id==='am'){AF={m:t.value,v:''};return show()}if(t.id==='av'){AF.v=t.value;return show()}
  if(t.id==='hx'&&t.files[0]){try{await impHol(t.files[0])}catch(x){alert('Could not read the file: '+x.message)}t.value=''}
  if(t.id==='rm'&&t.value){month=t.value;show()}
  if(t.id==='ph'&&t.files[0]){const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,420/Math.max(img.width,img.height));c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);photoData=c.toDataURL('image/jpeg',.8);$('#phv').innerHTML=`<img src="${photoData}" style="width:170px;height:170px;border-radius:50%;object-fit:cover">`};img.src=URL.createObjectURL(t.files[0])}});
 const mobId=async v=>{v=v.trim();if(v.includes('@'))return v;const s=await getDoc(doc(db,'phoneIndex',v.replace(/\D/g,'').slice(-10)));if(!s.exists())throw {message:'Mobile number not found.'};return s.data().email};
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,k=b.dataset.k,m=t=>{const x=$('#m');if(x)x.textContent=t;else alert(t)};
  try{
- if(a==='tab'){tab=k;return show()}if(a==='out')return signOut(auth);if(a==='tr')return login(1);if(a==='tl')return login();
+ if(a==='tab'){tab=k;return show()}if(a==='out'){if(CHU){CHU();CHU=null}MSGS=[];CUR=null;return signOut(auth)}if(a==='tr')return login(1);if(a==='tl')return login();
  if(a==='eye'){const i=b.previousElementSibling;i.type=i.type==='password'?'text':'password';return}
  if(a==='mo'){const g=$('#bg');g.classList.toggle('nomo');try{localStorage.setItem('mo',g.classList.contains('nomo')?'0':'1')}catch(x){}return show()}
  if(a==='rs'){const v=$('#e').value;if(!v)return m('Type your email or mobile number first.');await sendPasswordResetEmail(auth,await mobId(v));return m('Password reset email sent.')}
@@ -288,7 +330,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
   reg=true;const c=await createUserWithEmailAndPassword(auth,ei,p);uid=c.user.uid;em=c.user.email.toLowerCase();
   me={name:n,nameLower:n.toLowerCase(),email:em,mobile:mo,post:$('#po').value.trim(),dept:$('#d').value.trim(),role:'staff',allow:21,doj:''};
   const w=writeBatch(db);w.set(doc(db,'users',uid),me);w.set(doc(db,'phoneIndex',mo),{email:em,uid});await w.commit();reg=false;isOwner=false;
-  if(em===OWNER){sendEmailVerification(c.user).catch(()=>{});alert('A verification email was sent to '+em+'. Click the link in it, then sign in again to get HR powers.')}tab='mine';show()}
+  if(em===OWNER){sendEmailVerification(c.user).catch(()=>{});alert('A verification email was sent to '+em+'. Click the link in it, then sign in again to get HR powers.')}afterLogin();tab='mine';show()}
  if(a==='req'){const f=$('#f').value,o=$('#o').value,h=$('#h').checked;if(!f||!o||o<f)return m('Check the dates.');if(h&&f!==o)return m('Half day needs the same date.');
   const hd=!!me.head,ref=await addDoc(C('leaves'),{uid,email:em,name:me.name,post:me.post||'',dept:me.dept||'',type:$('#t').value,from:f,to:o,half:h,note:$('#r').value.trim(),status:hd?'Approved':'Pending',decidedBy:hd?'self':'',head:hd,approvers:apprs(),created:Date.now()});
   if(!hd)notify('applied',ref.id);toast('😊','Your leave request was submitted!');show()}
@@ -302,21 +344,25 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
   if(o&&!isOwner){const c=await gp(),dist=Math.round(hav(o.lat,o.lng,c.latitude,c.longitude));if(c.accuracy>200)return alert('Your location is not accurate enough. Turn on GPS and try again.');if(dist>o.radius)return alert('You are about '+dist+' m from the office. Check-out works only inside the office premises.');loc={lat:c.latitude,lng:c.longitude,acc:Math.round(c.accuracy),dist}}
   await setDoc(doc(db,'attendance',id),{...s.data(),out:Date.now(),...loc});toast('🚪','Checked out. Worked '+hrs(s.data().at,Date.now()));show()}
  if(a==='sn'){await setDoc(doc(db,'config','notice'),{text:$('#notice').value.trim()});NOTICE=$('#notice').value.trim();toast('📢','Notice updated');show()}
+ if(a==='co2'){const nm=b.dataset.n;openChat(k,nm);return}
+ if(a==='chr'){const h=DIR.find(u=>u.hr);if(!h)return alert('HR has not signed in to the new version yet. Please try later.');return openChat(h.id,h.name)}
+ if(a==='em'){const i=$('#ct');if(i){i.value+=k;i.focus()}return}
+ if(a==='cs2'){const i=$('#ct'),tx=i.value.trim();if(!tx||!CUR)return;i.value='';await addDoc(C('messages'),{chat:CUR,members:[uid,CURO],from:uid,fromName:me.name,to:CURO,toName:CURN,text:tx,ts:Date.now()});return}
  if(a==='ol'){const r=+$('#orad').value||250,c=await gp();if(c.accuracy>100&&!confirm('Your location accuracy is only ±'+Math.round(c.accuracy)+' m. Save anyway? Better: use your phone, outdoors near the entrance.'))return;
   const dl=r/111320,dg=r/(111320*Math.cos(c.latitude*Math.PI/180));await setDoc(doc(db,'config','office'),{lat:c.latitude,lng:c.longitude,radius:r,minLat:c.latitude-dl,maxLat:c.latitude+dl,minLng:c.longitude-dg,maxLng:c.longitude+dg});toast('📍','Office location saved');show()}
  if(a==='olx'&&confirm('Turn off the location check? Check-in will then work from anywhere.')){await deleteDoc(doc(db,'config','office'));show()}
  if(a==='set'){await updateDoc(doc(db,'leaves',k),{status:b.dataset.v,decidedBy:em});notify('decided',k);show()}
- if(a==='ps'){const d={name:$('#pn').value.trim(),post:$('#pp').value.trim(),dept:$('#pd').value.trim(),doj:$('#pj').value};if(!d.name)return m('Name is required.');d.nameLower=d.name.toLowerCase();if(photoData)d.photo=photoData;await updateDoc(doc(db,'users',uid),d);me={...me,...d};toast('✅','Profile saved');show()}
+ if(a==='ps'){const d={name:$('#pn').value.trim(),post:$('#pp').value.trim(),dept:$('#pd').value.trim(),doj:$('#pj').value};if(!d.name)return m('Name is required.');d.nameLower=d.name.toLowerCase();if(photoData)d.photo=photoData;await updateDoc(doc(db,'users',uid),d);me={...me,...d};syncDir();toast('✅','Profile saved');show()}
  if(a==='dlrep')await xl({Report:[['Name','Post','Department','Present','Late','Half day','Leave','Absent','Hours worked','Leave left'],...rep]},'attendance-report-'+month+'.xlsx');
  if(a==='alltabs'){b.closest('tr').querySelectorAll('.tb').forEach(c=>c.checked=true);return}
- if(a==='sp'){const r=b.closest('tr'),q=s=>r.querySelector(s);await updateDoc(doc(db,'users',r.dataset.u),{name:q('.nm').value.trim(),nameLower:q('.nm').value.trim().toLowerCase(),post:q('.po').value.trim(),dept:q('.de').value.trim(),allow:+q('.al').value||0,head:q('.hd').checked,tabs:[...r.querySelectorAll('.tb:checked')].map(c=>c.dataset.t)});b.textContent='Saved'}
+ if(a==='sp'){const r=b.closest('tr'),q=s=>r.querySelector(s);await updateDoc(doc(db,'users',r.dataset.u),{name:q('.nm').value.trim(),nameLower:q('.nm').value.trim().toLowerCase(),post:q('.po').value.trim(),dept:q('.de').value.trim(),allow:+q('.al').value||0,head:q('.hd').checked,tabs:[...r.querySelectorAll('.tb:checked')].map(c=>c.dataset.t)});setDoc(doc(db,'directory',r.dataset.u),{name:q('.nm').value.trim(),nameLower:q('.nm').value.trim().toLowerCase(),post:q('.po').value.trim(),dept:q('.de').value.trim(),hr:false},{merge:true}).catch(()=>{});b.textContent='Saved'}
  if(a==='rl'){const r=b.closest('tr'),u=PU.find(x=>x.id===r.dataset.u),v=prompt('Who should approve '+u.name+'\'s leave?\nType their login email(s), separated by commas. Leave empty = HR only.',(u.reportsTo||[]).join(', '));if(v===null)return;
   const list=v.split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),w=writeBatch(db);w.update(doc(db,'users',u.id),{reportsTo:list});
   (await get(query(C('leaves'),where('uid','==',u.id),where('status','==','Pending')))).forEach(l=>w.update(doc(db,'leaves',l.id),{approvers:list.length?list:[OWNER]}));await w.commit();toast('✅','Approval line updated');show()}
  if(a==='du'){const r=b.closest('tr'),u=PU.find(x=>x.id===r.dataset.u);if(u.email&&u.email.toLowerCase()===OWNER)return alert('You cannot delete the HR account.');
   if(!confirm('Delete ALL data of '+u.name+' (profile, leaves, attendance)? This cannot be undone. Download the data first if needed.'))return;
   const w=writeBatch(db);(await get(query(C('leaves'),where('uid','==',u.id)))).forEach(l=>w.delete(doc(db,'leaves',l.id)));(await get(query(C('attendance'),where('uid','==',u.id)))).forEach(l=>w.delete(doc(db,'attendance',l.id)));
-  if(u.mobile)w.delete(doc(db,'phoneIndex',u.mobile));w.delete(doc(db,'users',u.id));await w.commit();alert('Data deleted. Their login still exists: remove it in Firebase > Authentication > Users if needed.');show()}
+  if(u.mobile)w.delete(doc(db,'phoneIndex',u.mobile));w.delete(doc(db,'users',u.id));w.delete(doc(db,'directory',u.id));await w.commit();alert('Data deleted. Their login still exists: remove it in Firebase > Authentication > Users if needed.');show()}
  if(a==='dlall'){b.textContent='Preparing…';const [us,ls,at]=await Promise.all([get(query(C('users'))),get(query(C('leaves'))),get(query(C('attendance')))]);
   await xl({People:[['Name','Email','Mobile','Designation','Department','Date of joining','Allowance','Approval goes to','Head','Tab access'],...us.map(u=>[u.name,u.email||'',u.mobile||'',u.post||'',u.dept||'',u.doj||'',u.allow??21,(u.reportsTo||[]).join(', '),u.head?'Yes':'',(u.tabs||[]).join(', ')])],
    Leaves:[LH,...ls.map(LR)],Attendance:[['Name','Department','Date','Status','Time'],...at.sort((x,y)=>x.date<y.date?1:-1).map(x=>[x.name,x.dept||'',x.date,x.status,tm(x.at)])]},'shsrc-all-data-'+today()+'.xlsx');b.textContent='⬇ Download all data (Excel)'}
